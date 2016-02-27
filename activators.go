@@ -44,3 +44,23 @@ func (s *sigmoidActivator) Derivative(potential float64) float64 {
 	activation := s.Activation(potential)
 	return activation * (1 - activation)
 }
+
+// NewStepFunction creates Activator that returns 0 or 1 only
+// Actication: 1 if potential >= 0 else 0
+// Derivative: 0 (is that correct?)
+func NewStepFunction() Activator {
+	return &stepActicator{}
+}
+
+type stepActicator struct{}
+
+func (s *stepActicator) Activation(potential float64) float64 {
+	if potential >= 0 {
+		return 1
+	}
+	return 0
+}
+
+func (s *stepActicator) Derivative(potential float64) float64 {
+	return 0 // is that correct?
+}

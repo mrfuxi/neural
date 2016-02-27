@@ -6,20 +6,25 @@ type Evaluator interface {
 }
 
 type network struct {
-	Layers []Layer
+	activator Activator
+	layers    []Layer
 }
 
 func (n *network) Evaluate(input []float64) []float64 {
 	output := input
-	for _, layer := range n.Layers {
+	for _, layer := range n.layers {
 		output = layer.Forward(output)
+		for i, potential := range output {
+			output[i] = n.activator.Activation(potential)
+		}
 	}
 	return output
 }
 
 // NewNeuralNetwork initializes emtpy nerual network
-func NewNeuralNetwork(layers ...Layer) Evaluator {
+func NewNeuralNetwork(activator Activator, layers ...Layer) Evaluator {
 	return &network{
-		Layers: layers,
+		activator: activator,
+		layers:    layers,
 	}
 }
