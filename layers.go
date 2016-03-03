@@ -63,9 +63,6 @@ func (s *simpleLayer) SetWeights(weights *mat64.Dense, biases *mat64.Dense) {
 }
 
 func (s *simpleLayer) UpdateWeights(weights *mat64.Dense, biases *mat64.Dense) {
-	weights.Scale(-0.1, weights)
-	biases.Scale(-0.1, biases)
-
-	s.weights.Add(s.weights, weights)
-	s.biases.Add(s.biases, biases)
+	s.weights.Sub(s.weights, weights)
+	s.biases.Sub(s.biases, biases)
 }

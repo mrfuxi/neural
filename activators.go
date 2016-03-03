@@ -62,5 +62,5 @@ func (s *stepActicator) Activation(potential float64) float64 {
 }
 
 func (s *stepActicator) Derivative(potential float64) float64 {
-	return 0 // is that correct?
+	return 1 // is that correct?
 }
