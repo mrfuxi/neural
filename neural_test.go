@@ -97,11 +97,11 @@ func TestLearnOR(t *testing.T) {
 	}
 }
 
-func TestUseXOR(t *testing.T) {
+func TestUseXORStep(t *testing.T) {
 	weights0 := mat64.NewDense(2, 2, []float64{-1, 1, 1, -1})
-	biases0 := mat64.NewDense(2, 1, []float64{-0.5, -0.5})
+	biases0 := mat64.NewDense(2, 1, []float64{-1, -1})
 	weights1 := mat64.NewDense(1, 2, []float64{1, 1})
-	biases1 := mat64.NewDense(1, 1, []float64{-0.5})
+	biases1 := mat64.NewDense(1, 1, []float64{-0.1})
 
 	testMatrix := []neural.TrainExample{
 		{[]float64{0, 0}, []float64{0}},
@@ -125,6 +125,34 @@ func TestUseXOR(t *testing.T) {
 	}
 }
 
+func TestUseXORSigmoid(t *testing.T) {
+	weights0 := mat64.NewDense(2, 2, []float64{2.75, 2.75, 5, 5})
+	biases0 := mat64.NewDense(2, 1, []float64{-4, -2})
+	weights1 := mat64.NewDense(1, 2, []float64{-6, 6})
+	biases1 := mat64.NewDense(1, 1, []float64{-2.5})
+
+	testMatrix := []neural.TrainExample{
+		{[]float64{0, 0}, []float64{0}},
+		{[]float64{1, 1}, []float64{0}},
+		{[]float64{0, 1}, []float64{1}},
+		{[]float64{1, 0}, []float64{1}},
+	}
+
+	hiddenLayer := neural.NewSimpleLayer(2, 2)
+	hiddenLayer.SetWeights(weights0, biases0)
+
+	outLayer := neural.NewSimpleLayer(2, 1)
+	outLayer.SetWeights(weights1, biases1)
+
+	activator := neural.NewSigmoidActivator()
+	nn := neural.NewNeuralNetwork(activator, hiddenLayer, outLayer)
+
+	for _, example := range testMatrix {
+		output := nn.Evaluate(example.Input)
+		assert.InDelta(t, example.Output[0], output[0], 0.4999)
+	}
+}
+
 func TestLearnXOR(t *testing.T) {
 	testMatrix := []neural.TrainExample{
 		{[]float64{0, 0}, []float64{0}},
@@ -136,15 +164,15 @@ func TestLearnXOR(t *testing.T) {
 	hiddenLayer1 := neural.NewSimpleLayer(2, 2)
 	outLayer := neural.NewSimpleLayer(2, 1)
 
-	activator := neural.NewStepFunction()
+	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork(activator, hiddenLayer1, outLayer)
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		nn.Train(testMatrix)
 	}
 
 	for _, example := range testMatrix {
 		output := nn.Evaluate(example.Input)
-		assert.InDelta(t, example.Output[0], output[0], 0.4999)
+		assert.InDelta(t, example.Output[0], output[0], 0.2)
 	}
 }

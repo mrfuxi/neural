@@ -76,6 +76,7 @@ func (n *network) Train(trainExamples []TrainExample) {
 		// fmt.Println("a:", acticationPerLayer[len(acticationPerLayer)-2])
 		// fmt.Println("dw:", deltaWeights[layersCount-1].RawMatrix().Data)
 
+		// fmt.Println("dw:", deltaWeights[layersCount-l])
 		for l := 2; l <= layersCount; l++ {
 			// fmt.Println("layer:", layersCount-l)
 			sp := n.Activate(potentialsPerLayer[len(potentialsPerLayer)-l], false)
@@ -83,7 +84,7 @@ func (n *network) Train(trainExamples []TrainExample) {
 			// fmt.Println("delta:", delta)
 			// delta = n.Delta(...)
 			deltaBias[layersCount-l] = mat64.NewDense(len(delta), 1, delta)
-			deltaWeights[layersCount-l] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-l-0])
+			deltaWeights[layersCount-l] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-l-1])
 			// fmt.Println("dw:", deltaWeights[layersCount-l])
 		}
 
@@ -103,9 +104,12 @@ func (n *network) Train(trainExamples []TrainExample) {
 	}
 
 	// fmt.Println("Update by:")
+	eta := 3
+	samples := len(trainExamples)
+	rate := float64(eta) / float64(samples)
 	for l, layer := range n.layers {
-		sumDeltaWeights[l].Scale(0.5, sumDeltaWeights[l])
-		sumDeltaBias[l].Scale(0.5, sumDeltaBias[l])
+		sumDeltaWeights[l].Scale(rate, sumDeltaWeights[l])
+		sumDeltaBias[l].Scale(rate, sumDeltaBias[l])
 
 		// fw := mat64.Formatted(sumDeltaWeights[l], mat64.Prefix("    "))
 		// fb := mat64.Formatted(sumDeltaBias[l], mat64.Prefix("    "))
