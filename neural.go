@@ -11,7 +11,7 @@ type TrainExample struct {
 	Output []float64
 }
 
-// Evaluator wraps main taks of NN, evaluate input data
+// Evaluator wraps main tasks of NN, evaluate input data
 type Evaluator interface {
 	Evaluate(input []float64) []float64
 	Train(trainExamples []TrainExample)
@@ -24,15 +24,11 @@ type network struct {
 
 func (n *network) Evaluate(input []float64) []float64 {
 	output := input
-	// fmt.Println("input:", input)
 
 	for _, layer := range n.layers {
 		potentials := layer.Forward(output)
-		// fmt.Printf("%v p: %v\n", i, potentials)
 		output = n.Activate(potentials, true)
-		// fmt.Printf("%v a: %v\n", i, potentials)
 	}
-	// fmt.Println("output:", output)
 
 	return output
 }
@@ -57,35 +53,17 @@ func (n *network) Train(trainExamples []TrainExample) {
 			acticationPerLayer = append(acticationPerLayer, input)
 			potentialsPerLayer = append(potentialsPerLayer, potentials)
 		}
-		// fmt.Println("acticationPerLayer:", acticationPerLayer)
-		// fmt.Println("potentialsPerLayer:", potentialsPerLayer)
-
-		// fmt.Println("act:", acticationPerLayer[len(acticationPerLayer)-1])
-		// fmt.Println("expected:", sample.Output)
-		// fmt.Println("out layer:", layersCount-1)
 
 		errors := n.Diff(acticationPerLayer[len(acticationPerLayer)-1], sample.Output)
 		delta := n.Delta(potentialsPerLayer[len(potentialsPerLayer)-1], errors)
 		deltaBias[layersCount-1] = mat64.NewDense(len(delta), 1, delta)
 		deltaWeights[layersCount-1] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-2])
-		// fmt.Println("potentials:", potentialsPerLayer[len(potentialsPerLayer)-1])
-		// fmt.Println("potentials derivative:", n.Activate(potentialsPerLayer[len(potentialsPerLayer)-1], false))
-		// fmt.Println("potentials act:", n.Activate(potentialsPerLayer[len(potentialsPerLayer)-1], true))
-		// fmt.Println("errors:", errors)
-		// fmt.Println("delta:", delta)
-		// fmt.Println("a:", acticationPerLayer[len(acticationPerLayer)-2])
-		// fmt.Println("dw:", deltaWeights[layersCount-1].RawMatrix().Data)
 
-		// fmt.Println("dw:", deltaWeights[layersCount-l])
 		for l := 2; l <= layersCount; l++ {
-			// fmt.Println("layer:", layersCount-l)
 			sp := n.Activate(potentialsPerLayer[len(potentialsPerLayer)-l], false)
 			delta = n.Mul(n.layers[layersCount-l+1].Backward(delta), sp)
-			// fmt.Println("delta:", delta)
-			// delta = n.Delta(...)
 			deltaBias[layersCount-l] = mat64.NewDense(len(delta), 1, delta)
 			deltaWeights[layersCount-l] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-l-1])
-			// fmt.Println("dw:", deltaWeights[layersCount-l])
 		}
 
 		for l := range n.layers {
@@ -103,22 +81,14 @@ func (n *network) Train(trainExamples []TrainExample) {
 		}
 	}
 
-	// fmt.Println("Update by:")
 	eta := 3
 	samples := len(trainExamples)
 	rate := float64(eta) / float64(samples)
 	for l, layer := range n.layers {
 		sumDeltaWeights[l].Scale(rate, sumDeltaWeights[l])
 		sumDeltaBias[l].Scale(rate, sumDeltaBias[l])
-
-		// fw := mat64.Formatted(sumDeltaWeights[l], mat64.Prefix("    "))
-		// fb := mat64.Formatted(sumDeltaBias[l], mat64.Prefix("    "))
-		// fmt.Printf("w = %v\n\n", fw)
-		// fmt.Printf("b = %v\n\n", fb)
-
 		layer.UpdateWeights(sumDeltaWeights[l], sumDeltaBias[l])
 	}
-	// fmt.Println("Done")
 }
 
 func (n *network) Activate(potentials []float64, forward bool) (output []float64) {
@@ -137,16 +107,6 @@ func (n *network) Activate(potentials []float64, forward bool) (output []float64
 }
 
 func (n *network) MulTranspose(a, b []float64) (mul *mat64.Dense) {
-	// if len(a) != len(b) {
-	// 	errMsg := fmt.Sprintf("Incompatible sizes. %v vs %v", len(a), len(b))
-	// 	panic(errMsg)
-	// }
-
-	// mul = make([]float64, len(a), len(a))
-	// for i := range mul {
-	// sp := mul[i] )
-	// 	= a[i] * b[i]  matA :=
-	// }
 	matA := mat64.NewDense(len(a), 1, a)
 	matB := mat64.NewDense(len(b), 1, b)
 	mul = mat64.NewDense(len(a), len(b), nil)
