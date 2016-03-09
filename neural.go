@@ -2,6 +2,7 @@ package neural
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/gonum/matrix/mat64"
 )
@@ -14,7 +15,7 @@ type TrainExample struct {
 // Evaluator wraps main tasks of NN, evaluate input data
 type Evaluator interface {
 	Evaluate(input []float64) []float64
-	Train(trainExamples []TrainExample)
+	Train(trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64)
 }
 
 type network struct {
@@ -33,38 +34,49 @@ func (n *network) Evaluate(input []float64) []float64 {
 	return output
 }
 
-func (n *network) Train(trainExamples []TrainExample) {
+func (n *network) Train(trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64) {
+	type Range struct {
+		from, to int
+	}
+
+	samples := len(trainExamples)
+	batches := samples / miniBatchSize
+	if len(trainExamples)%miniBatchSize != 0 {
+		batches++
+	}
+
+	batchRanges := make([]Range, batches, batches)
+	for b := range batchRanges {
+		min := b * miniBatchSize
+		max := min + miniBatchSize
+		if max > samples {
+			max = samples
+		}
+		batchRanges[b] = Range{min, max}
+	}
+
+	for epoch := 0; epoch <= epochs; epoch++ {
+		// Shuffle training data
+		for i := range trainExamples {
+			j := rand.Intn(i + 1)
+			trainExamples[i], trainExamples[j] = trainExamples[j], trainExamples[i]
+		}
+
+		for _, batch := range batchRanges {
+			n.updateMiniBatch(trainExamples[batch.from:batch.to], learningRate)
+		}
+	}
+}
+
+func (n *network) updateMiniBatch(miniBatch []TrainExample, learningRate float64) {
 	layersCount := len(n.layers)
+	samples := len(miniBatch)
 
 	sumDeltaBias := make([]*mat64.Dense, layersCount, layersCount)
 	sumDeltaWeights := make([]*mat64.Dense, layersCount, layersCount)
 
-	for _, sample := range trainExamples {
-		acticationPerLayer := make([][]float64, 0)
-		potentialsPerLayer := make([][]float64, 0)
-		deltaBias := make([]*mat64.Dense, layersCount, layersCount)
-		deltaWeights := make([]*mat64.Dense, layersCount, layersCount)
-
-		input := sample.Input
-		acticationPerLayer = append(acticationPerLayer, input)
-		for _, layer := range n.layers {
-			potentials := layer.Forward(input)
-			input = n.Activate(potentials, true)
-			acticationPerLayer = append(acticationPerLayer, input)
-			potentialsPerLayer = append(potentialsPerLayer, potentials)
-		}
-
-		errors := n.Diff(acticationPerLayer[len(acticationPerLayer)-1], sample.Output)
-		delta := n.Delta(potentialsPerLayer[len(potentialsPerLayer)-1], errors)
-		deltaBias[layersCount-1] = mat64.NewDense(len(delta), 1, delta)
-		deltaWeights[layersCount-1] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-2])
-
-		for l := 2; l <= layersCount; l++ {
-			sp := n.Activate(potentialsPerLayer[len(potentialsPerLayer)-l], false)
-			delta = n.Mul(n.layers[layersCount-l+1].Backward(delta), sp)
-			deltaBias[layersCount-l] = mat64.NewDense(len(delta), 1, delta)
-			deltaWeights[layersCount-l] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-l-1])
-		}
+	for _, sample := range miniBatch {
+		deltaWeights, deltaBias := n.backPropagation(sample)
 
 		for l := range n.layers {
 			if sumDeltaBias[l] == nil {
@@ -81,14 +93,43 @@ func (n *network) Train(trainExamples []TrainExample) {
 		}
 	}
 
-	eta := 3
-	samples := len(trainExamples)
-	rate := float64(eta) / float64(samples)
+	rate := learningRate / float64(samples)
 	for l, layer := range n.layers {
 		sumDeltaWeights[l].Scale(rate, sumDeltaWeights[l])
 		sumDeltaBias[l].Scale(rate, sumDeltaBias[l])
 		layer.UpdateWeights(sumDeltaWeights[l], sumDeltaBias[l])
 	}
+}
+
+func (n *network) backPropagation(sample TrainExample) (deltaWeights []*mat64.Dense, deltaBias []*mat64.Dense) {
+	layersCount := len(n.layers)
+
+	acticationPerLayer := [][]float64{}
+	potentialsPerLayer := [][]float64{}
+	deltaBias = make([]*mat64.Dense, layersCount, layersCount)
+	deltaWeights = make([]*mat64.Dense, layersCount, layersCount)
+
+	input := sample.Input
+	acticationPerLayer = append(acticationPerLayer, input)
+	for _, layer := range n.layers {
+		potentials := layer.Forward(input)
+		input = n.Activate(potentials, true)
+		acticationPerLayer = append(acticationPerLayer, input)
+		potentialsPerLayer = append(potentialsPerLayer, potentials)
+	}
+
+	errors := n.Diff(acticationPerLayer[len(acticationPerLayer)-1], sample.Output)
+	delta := n.Delta(potentialsPerLayer[len(potentialsPerLayer)-1], errors)
+	deltaBias[layersCount-1] = mat64.NewDense(len(delta), 1, delta)
+	deltaWeights[layersCount-1] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-2])
+
+	for l := 2; l <= layersCount; l++ {
+		sp := n.Activate(potentialsPerLayer[len(potentialsPerLayer)-l], false)
+		delta = n.Mul(n.layers[layersCount-l+1].Backward(delta), sp)
+		deltaBias[layersCount-l] = mat64.NewDense(len(delta), 1, delta)
+		deltaWeights[layersCount-l] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-l-1])
+	}
+	return
 }
 
 func (n *network) Activate(potentials []float64, forward bool) (output []float64) {

@@ -65,9 +65,7 @@ func TestLearnAND(t *testing.T) {
 	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork(activator, outLayer)
 
-	for i := 0; i < 1000; i++ {
-		nn.Train(testMatrix)
-	}
+	nn.Train(testMatrix, 1000, 2, 3)
 
 	for _, example := range testMatrix {
 		output := nn.Evaluate(example.Input)
@@ -87,9 +85,7 @@ func TestLearnOR(t *testing.T) {
 	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork(activator, outLayer)
 
-	for i := 0; i < 1000; i++ {
-		nn.Train(testMatrix)
-	}
+	nn.Train(testMatrix, 1000, 2, 3)
 
 	for _, example := range testMatrix {
 		output := nn.Evaluate(example.Input)
@@ -167,9 +163,7 @@ func TestLearnXOR(t *testing.T) {
 	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork(activator, hiddenLayer1, outLayer)
 
-	for i := 0; i < 1000; i++ {
-		nn.Train(testMatrix)
-	}
+	nn.Train(testMatrix, 1000, 4, 3)
 
 	for _, example := range testMatrix {
 		output := nn.Evaluate(example.Input)
