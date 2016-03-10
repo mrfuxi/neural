@@ -50,7 +50,7 @@ func (s *simpleLayer) Forward(input []float64) []float64 {
 
 func (s *simpleLayer) Backward(input []float64) []float64 {
 	inputMat := mat64.NewDense(len(input), 1, input)
-	outMat := mat64.NewDense(s.inputs, len(input), nil)
+	outMat := mat64.NewDense(s.inputs, 1, nil)
 
 	outMat.Mul(s.weights.T(), inputMat)
 
