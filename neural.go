@@ -3,6 +3,7 @@ package neural
 import (
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/gonum/matrix/mat64"
 )
@@ -62,10 +63,19 @@ func (n *network) Train(trainExamples []TrainExample, epochs int, miniBatchSize 
 			trainExamples[i], trainExamples[j] = trainExamples[j], trainExamples[i]
 		}
 
-		for _, batch := range batchRanges {
+		for b, batch := range batchRanges {
+			t0 := time.Now()
 			n.updateMiniBatch(trainExamples[batch.from:batch.to], learningRate)
+			dt := time.Since(t0)
+			fmt.Printf("%v/%v\t%v\n", b, batches, dt)
 		}
+		fmt.Println("Epoch:", epoch)
 	}
+}
+
+type cn struct {
+	biases  []*mat64.Dense
+	weights []*mat64.Dense
 }
 
 func (n *network) updateMiniBatch(miniBatch []TrainExample, learningRate float64) {
@@ -74,22 +84,33 @@ func (n *network) updateMiniBatch(miniBatch []TrainExample, learningRate float64
 
 	sumDeltaBias := make([]*mat64.Dense, layersCount, layersCount)
 	sumDeltaWeights := make([]*mat64.Dense, layersCount, layersCount)
+	buff := make(chan cn)
 
 	for _, sample := range miniBatch {
-		deltaWeights, deltaBias := n.backPropagation(sample)
+		go func(sample TrainExample) {
+			deltaWeights, deltaBias := n.backPropagation(sample)
+			buff <- cn{biases: deltaBias, weights: deltaWeights}
+		}(sample)
+	}
 
+	idx := 0
+	for c := range buff {
 		for l := range n.layers {
-			if sumDeltaBias[l] == nil {
-				sumDeltaBias[l] = mat64.DenseCopyOf(deltaBias[l])
+			if sumDeltaWeights[l] == nil {
+				sumDeltaWeights[l] = mat64.DenseCopyOf(c.weights[l])
 			} else {
-				sumDeltaBias[l].Add(sumDeltaBias[l], deltaBias[l])
+				sumDeltaWeights[l].Add(sumDeltaWeights[l], c.weights[l])
 			}
 
-			if sumDeltaWeights[l] == nil {
-				sumDeltaWeights[l] = mat64.DenseCopyOf(deltaWeights[l])
+			if sumDeltaBias[l] == nil {
+				sumDeltaBias[l] = mat64.DenseCopyOf(c.biases[l])
 			} else {
-				sumDeltaWeights[l].Add(sumDeltaWeights[l], deltaWeights[l])
+				sumDeltaBias[l].Add(sumDeltaBias[l], c.biases[l])
 			}
+		}
+		idx++
+		if idx == samples {
+			close(buff)
 		}
 	}
 
