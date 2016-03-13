@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
-
-	"github.com/gonum/matrix/mat64"
 )
 
 type TrainExample struct {
@@ -74,16 +72,18 @@ func (n *network) Train(trainExamples []TrainExample, epochs int, miniBatchSize 
 }
 
 type cn struct {
-	biases  []*mat64.Dense
-	weights []*mat64.Dense
+	biases  [][]float64
+	weights [][][]float64
 }
 
 func (n *network) updateMiniBatch(miniBatch []TrainExample, learningRate float64) {
 	layersCount := len(n.layers)
 	samples := len(miniBatch)
 
-	sumDeltaBias := make([]*mat64.Dense, layersCount, layersCount)
-	sumDeltaWeights := make([]*mat64.Dense, layersCount, layersCount)
+	sumDeltaBias := make([][]float64, layersCount, layersCount)
+	sumDeltaWeights := make([][][]float64, layersCount, layersCount)
+	// sumDeltaBias := make([]*mat64.Dense, layersCount, layersCount)
+	// sumDeltaWeights := make([]*mat64.Dense, layersCount, layersCount)
 	buff := make(chan cn)
 
 	for _, sample := range miniBatch {
@@ -97,15 +97,19 @@ func (n *network) updateMiniBatch(miniBatch []TrainExample, learningRate float64
 	for c := range buff {
 		for l := range n.layers {
 			if sumDeltaWeights[l] == nil {
-				sumDeltaWeights[l] = mat64.DenseCopyOf(c.weights[l])
+				sumDeltaWeights[l] = copyOfMatrix(c.weights[l])
+				// sumDeltaWeights[l] = mat64.DenseCopyOf(c.weights[l])
 			} else {
-				sumDeltaWeights[l].Add(sumDeltaWeights[l], c.weights[l])
+				sumMatrix(sumDeltaWeights[l], c.weights[l])
+				// sumDeltaWeights[l].Add(sumDeltaWeights[l], c.weights[l])
 			}
 
 			if sumDeltaBias[l] == nil {
-				sumDeltaBias[l] = mat64.DenseCopyOf(c.biases[l])
+				sumDeltaBias[l] = copyOfVector(c.biases[l])
+				// sumDeltaBias[l] = mat64.DenseCopyOf(c.biases[l])
 			} else {
-				sumDeltaBias[l].Add(sumDeltaBias[l], c.biases[l])
+				sumVector(sumDeltaBias[l], c.biases[l])
+				// sumDeltaBias[l].Add(sumDeltaBias[l], c.biases[l])
 			}
 		}
 		idx++
@@ -116,19 +120,23 @@ func (n *network) updateMiniBatch(miniBatch []TrainExample, learningRate float64
 
 	rate := learningRate / float64(samples)
 	for l, layer := range n.layers {
-		sumDeltaWeights[l].Scale(rate, sumDeltaWeights[l])
-		sumDeltaBias[l].Scale(rate, sumDeltaBias[l])
+		// 	sumDeltaWeights[l].Scale(rate, sumDeltaWeights[l])
+		// 	sumDeltaBias[l].Scale(rate, sumDeltaBias[l])
+		// 	// fmt.Println(layer)
+		mulVectorByScalar(sumDeltaBias[l], rate)
+		mulMatrixByScalar(sumDeltaWeights[l], rate)
 		layer.UpdateWeights(sumDeltaWeights[l], sumDeltaBias[l])
 	}
 }
 
-func (n *network) backPropagation(sample TrainExample) (deltaWeights []*mat64.Dense, deltaBias []*mat64.Dense) {
+func (n *network) backPropagation(sample TrainExample) (deltaWeights [][][]float64, deltaBias [][]float64) {
 	layersCount := len(n.layers)
 
 	acticationPerLayer := [][]float64{}
 	potentialsPerLayer := [][]float64{}
-	deltaBias = make([]*mat64.Dense, layersCount, layersCount)
-	deltaWeights = make([]*mat64.Dense, layersCount, layersCount)
+
+	deltaBias = make([][]float64, layersCount, layersCount)
+	deltaWeights = make([][][]float64, layersCount, layersCount)
 
 	input := sample.Input
 	acticationPerLayer = append(acticationPerLayer, input)
@@ -141,14 +149,18 @@ func (n *network) backPropagation(sample TrainExample) (deltaWeights []*mat64.De
 
 	errors := n.Diff(acticationPerLayer[len(acticationPerLayer)-1], sample.Output)
 	delta := n.Delta(potentialsPerLayer[len(potentialsPerLayer)-1], errors)
-	deltaBias[layersCount-1] = mat64.NewDense(len(delta), 1, delta)
-	deltaWeights[layersCount-1] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-2])
+	deltaBias[layersCount-1] = copyOfVector(delta)
+	deltaWeights[layersCount-1] = mulTransposeVector(delta, acticationPerLayer[len(acticationPerLayer)-2])
+	// deltaBias[layersCount-1] = mat64.NewDense(len(delta), 1, delta)
+	// deltaWeights[layersCount-1] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-2])
 
 	for l := 2; l <= layersCount; l++ {
 		sp := n.Activate(potentialsPerLayer[len(potentialsPerLayer)-l], false)
 		delta = n.Mul(n.layers[layersCount-l+1].Backward(delta), sp)
-		deltaBias[layersCount-l] = mat64.NewDense(len(delta), 1, delta)
-		deltaWeights[layersCount-l] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-l-1])
+		deltaBias[layersCount-l] = copyOfVector(delta) // full copy can be avoided?
+		deltaWeights[layersCount-l] = mulTransposeVector(delta, acticationPerLayer[len(acticationPerLayer)-l-1])
+		// deltaBias[layersCount-l] = mat64.NewDense(len(delta), 1, delta)
+		// deltaWeights[layersCount-l] = n.MulTranspose(delta, acticationPerLayer[len(acticationPerLayer)-l-1])
 	}
 	return
 }
@@ -168,14 +180,14 @@ func (n *network) Activate(potentials []float64, forward bool) (output []float64
 	return
 }
 
-func (n *network) MulTranspose(a, b []float64) (mul *mat64.Dense) {
-	matA := mat64.NewDense(len(a), 1, a)
-	matB := mat64.NewDense(len(b), 1, b)
-	mul = mat64.NewDense(len(a), len(b), nil)
+// func (n *network) MulTranspose(a, b []float64) (mul *mat64.Dense) {
+// 	matA := mat64.NewDense(len(a), 1, a)
+// 	matB := mat64.NewDense(len(b), 1, b)
+// 	mul = mat64.NewDense(len(a), len(b), nil)
 
-	mul.Mul(matA, matB.T())
-	return
-}
+// 	mul.Mul(matA, matB.T())
+// 	return
+// }
 
 func (n *network) Mul(a, b []float64) (mul []float64) {
 	if len(a) != len(b) {

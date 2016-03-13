@@ -3,7 +3,6 @@ package neural_test
 import (
 	"testing"
 
-	"github.com/gonum/matrix/mat64"
 	"github.com/mrfuxi/neural"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,13 +14,21 @@ func TestFeedForwardCorrentOutputSize(t *testing.T) {
 
 	layer := neural.NewSimpleLayer(2, 3)
 	layer.SetWeights(
-		mat64.NewDense(3, 2, []float64{
-			0.1, 2,
-			0.2, 3,
-			0.3, 4,
-		}),
-		mat64.NewDense(3, 1, []float64{10, 20, 30}),
+		[][]float64{
+			{0.1, 2},
+			{0.2, 3},
+			{0.3, 4},
+		},
+		[]float64{10, 20, 30},
 	)
+	// layer.SetWeights(
+	// 	mat64.NewDense(3, 2, []float64{
+	// 		0.1, 2,
+	// 		0.2, 3,
+	// 		0.3, 4,
+	// 	}),
+	// 	mat64.NewDense(3, 1, []float64{10, 20, 30}),
+	// )
 
 	nn := neural.NewNeuralNetwork(activator, layer)
 	output := nn.Evaluate(input)
@@ -39,9 +46,13 @@ func TestBinaryAND(t *testing.T) {
 	}
 
 	layer := neural.NewSimpleLayer(2, 1)
+	// layer.SetWeights(
+	// 	mat64.NewDense(1, 2, []float64{1, 1}),
+	// 	mat64.NewDense(1, 1, []float64{-2}),
+	// )
 	layer.SetWeights(
-		mat64.NewDense(1, 2, []float64{1, 1}),
-		mat64.NewDense(1, 1, []float64{-2}),
+		[][]float64{{1, 1}},
+		[]float64{-2},
 	)
 
 	activator := neural.NewStepFunction()
@@ -94,10 +105,10 @@ func TestLearnOR(t *testing.T) {
 }
 
 func TestUseXORStep(t *testing.T) {
-	weights0 := mat64.NewDense(2, 2, []float64{-1, 1, 1, -1})
-	biases0 := mat64.NewDense(2, 1, []float64{-1, -1})
-	weights1 := mat64.NewDense(1, 2, []float64{1, 1})
-	biases1 := mat64.NewDense(1, 1, []float64{-0.1})
+	weights0 := [][]float64{{-1, 1}, {1, -1}}
+	biases0 := []float64{-1, -1}
+	weights1 := [][]float64{{1, 1}}
+	biases1 := []float64{-0.1}
 
 	testMatrix := []neural.TrainExample{
 		{[]float64{0, 0}, []float64{0}},
@@ -122,10 +133,10 @@ func TestUseXORStep(t *testing.T) {
 }
 
 func TestUseXORSigmoid(t *testing.T) {
-	weights0 := mat64.NewDense(2, 2, []float64{2.75, 2.75, 5, 5})
-	biases0 := mat64.NewDense(2, 1, []float64{-4, -2})
-	weights1 := mat64.NewDense(1, 2, []float64{-6, 6})
-	biases1 := mat64.NewDense(1, 1, []float64{-2.5})
+	weights0 := [][]float64{{2.75, 2.75}, {5, 5}}
+	biases0 := []float64{-4, -2}
+	weights1 := [][]float64{{-6, 6}}
+	biases1 := []float64{-2.5}
 
 	testMatrix := []neural.TrainExample{
 		{[]float64{0, 0}, []float64{0}},
@@ -149,24 +160,24 @@ func TestUseXORSigmoid(t *testing.T) {
 	}
 }
 
-func TestLearnXOR(t *testing.T) {
-	testMatrix := []neural.TrainExample{
-		{[]float64{0, 0}, []float64{0}},
-		{[]float64{1, 1}, []float64{0}},
-		{[]float64{0, 1}, []float64{1}},
-		{[]float64{1, 0}, []float64{1}},
-	}
+// func TestLearnXOR(t *testing.T) {
+// 	testMatrix := []neural.TrainExample{
+// 		{[]float64{0, 0}, []float64{0}},
+// 		{[]float64{1, 1}, []float64{0}},
+// 		{[]float64{0, 1}, []float64{1}},
+// 		{[]float64{1, 0}, []float64{1}},
+// 	}
 
-	hiddenLayer1 := neural.NewSimpleLayer(2, 2)
-	outLayer := neural.NewSimpleLayer(2, 1)
+// 	hiddenLayer1 := neural.NewSimpleLayer(2, 2)
+// 	outLayer := neural.NewSimpleLayer(2, 1)
 
-	activator := neural.NewSigmoidActivator()
-	nn := neural.NewNeuralNetwork(activator, hiddenLayer1, outLayer)
+// 	activator := neural.NewSigmoidActivator()
+// 	nn := neural.NewNeuralNetwork(activator, hiddenLayer1, outLayer)
 
-	nn.Train(testMatrix, 1000, 4, 3)
+// 	nn.Train(testMatrix, 1000, 4, 3)
 
-	for _, example := range testMatrix {
-		output := nn.Evaluate(example.Input)
-		assert.InDelta(t, example.Output[0], output[0], 0.2)
-	}
-}
+// 	for _, example := range testMatrix {
+// 		output := nn.Evaluate(example.Input)
+// 		assert.InDelta(t, example.Output[0], output[0], 0.2)
+// 	}
+// }
