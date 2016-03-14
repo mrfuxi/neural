@@ -62,13 +62,14 @@ func (n *network) Train(trainExamples []TrainExample, epochs int, miniBatchSize 
 			trainExamples[i], trainExamples[j] = trainExamples[j], trainExamples[i]
 		}
 
-		for _, batch := range batchRanges {
-			// t0 := time.Now()
+		for b, batch := range batchRanges {
+			t0 := time.Now()
 			n.updateMiniBatch(trainExamples[batch.from:batch.to], learningRate)
-			// dt := time.Since(t0)
-			// fmt.Printf("%v/%v\t%v\n", b, batches, dt)
+			dt := time.Since(t0)
+			if b%10 == 0 {
+				fmt.Printf("%v/%v %v/%v    %v\r", epoch, epochs, b+1, batches, dt)
+			}
 		}
-		// fmt.Println("Epoch:", epoch)
 	}
 }
 
