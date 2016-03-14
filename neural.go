@@ -3,6 +3,7 @@ package neural
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
 
 type TrainExample struct {
