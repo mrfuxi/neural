@@ -3,7 +3,6 @@ package neural
 import (
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/gonum/matrix/mat64"
 )
@@ -63,13 +62,13 @@ func (n *network) Train(trainExamples []TrainExample, epochs int, miniBatchSize 
 			trainExamples[i], trainExamples[j] = trainExamples[j], trainExamples[i]
 		}
 
-		for b, batch := range batchRanges {
-			t0 := time.Now()
+		for _, batch := range batchRanges {
+			// t0 := time.Now()
 			n.updateMiniBatch(trainExamples[batch.from:batch.to], learningRate)
-			dt := time.Since(t0)
-			fmt.Printf("%v/%v\t%v\n", b, batches, dt)
+			// dt := time.Since(t0)
+			// fmt.Printf("%v/%v\t%v\n", b, batches, dt)
 		}
-		fmt.Println("Epoch:", epoch)
+		// fmt.Println("Epoch:", epoch)
 	}
 }
 
