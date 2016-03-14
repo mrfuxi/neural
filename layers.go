@@ -46,32 +46,21 @@ func (s *simpleLayer) Forward(input []float64) []float64 {
 	outMat := make([]float64, s.neurons, s.neurons)
 	copy(outMat, s.biases)
 
-	// for (i = 0; i < rows; i++)
 	for r, row := range s.weights {
-		// fmt.Println(row, input)
 		for c, inputValue := range input {
 			outMat[r] += row[c] * inputValue
 		}
-		// outMat[r] = vectors_dot_prod(row, input)
 	}
 
-	// for
-	// inputMat := mat64.NewDense(s.inputs, 1, input)
-	// outMat := mat64.NewDense(s.neurons, 1, nil)
-
-	// outMat.Mul(s.weights, inputMat)
-	// outMat.Add(outMat, s.biases)
-
-	// return outMat.RawMatrix().Data
 	return outMat
 }
 
 func (s *simpleLayer) Backward(input []float64) []float64 {
 	outMat := make([]float64, s.inputs, s.inputs)
 
-	for r, row := range s.weights {
-		for c := range input {
-			outMat[c] += row[c] * input[r]
+	for c, inputValue := range input {
+		for r, rowVal := range s.weights[c] {
+			outMat[r] += rowVal * inputValue
 		}
 	}
 

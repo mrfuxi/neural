@@ -3,7 +3,6 @@ package neural
 import (
 	"fmt"
 	"math/rand"
-	"time"
 )
 
 type TrainExample struct {
@@ -65,9 +64,10 @@ func (n *network) Train(trainExamples []TrainExample, epochs int, miniBatchSize 
 			t0 := time.Now()
 			n.updateMiniBatch(trainExamples[batch.from:batch.to], learningRate)
 			dt := time.Since(t0)
-			fmt.Printf("%v/%v\t%v\n", b, batches, dt)
+			if b%10 == 0 {
+				fmt.Printf("%v/%v %v/%v    %v\r", epoch, epochs, b+1, batches, dt)
+			}
 		}
-		fmt.Println("Epoch:", epoch)
 	}
 }
 

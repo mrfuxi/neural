@@ -160,24 +160,24 @@ func TestUseXORSigmoid(t *testing.T) {
 	}
 }
 
-// func TestLearnXOR(t *testing.T) {
-// 	testMatrix := []neural.TrainExample{
-// 		{[]float64{0, 0}, []float64{0}},
-// 		{[]float64{1, 1}, []float64{0}},
-// 		{[]float64{0, 1}, []float64{1}},
-// 		{[]float64{1, 0}, []float64{1}},
-// 	}
+func TestLearnXOR(t *testing.T) {
+	testMatrix := []neural.TrainExample{
+		{[]float64{0, 0}, []float64{0}},
+		{[]float64{1, 1}, []float64{0}},
+		{[]float64{0, 1}, []float64{1}},
+		{[]float64{1, 0}, []float64{1}},
+	}
 
-// 	hiddenLayer1 := neural.NewSimpleLayer(2, 2)
-// 	outLayer := neural.NewSimpleLayer(2, 1)
+	hiddenLayer1 := neural.NewSimpleLayer(2, 2)
+	outLayer := neural.NewSimpleLayer(2, 1)
 
-// 	activator := neural.NewSigmoidActivator()
-// 	nn := neural.NewNeuralNetwork(activator, hiddenLayer1, outLayer)
+	activator := neural.NewSigmoidActivator()
+	nn := neural.NewNeuralNetwork(activator, hiddenLayer1, outLayer)
 
-// 	nn.Train(testMatrix, 1000, 4, 3)
+	nn.Train(testMatrix, 1000, 4, 3)
 
-// 	for _, example := range testMatrix {
-// 		output := nn.Evaluate(example.Input)
-// 		assert.InDelta(t, example.Output[0], output[0], 0.2)
-// 	}
-// }
+	for _, example := range testMatrix {
+		output := nn.Evaluate(example.Input)
+		assert.InDelta(t, example.Output[0], output[0], 0.2)
+	}
+}

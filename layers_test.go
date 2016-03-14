@@ -17,3 +17,14 @@ func TestBackward(t *testing.T) {
 	actualBack := layer.Backward([]float64{10, 20})
 	assert.EqualValues(t, []float64{70, 100}, actualBack)
 }
+
+func TestBackwardDims(t *testing.T) {
+	layer := neural.NewSimpleLayer(2, 1)
+	layer.SetWeights(
+		[][]float64{{0.06563701921747622, 0.15651925473279124}},
+		[]float64{-1000000},
+	)
+
+	actualBack := layer.Backward([]float64{0.13998155491906017})
+	assert.EqualValues(t, []float64{0.009187972010314556, 0.021909808652268586}, actualBack)
+}
