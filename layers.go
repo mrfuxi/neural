@@ -1,6 +1,10 @@
 package neural
 
-import "math/rand"
+import (
+	"math/rand"
+
+	"github.com/mrfuxi/neural/mat"
+)
 
 type Layer interface {
 	Forward(input []float64) []float64
@@ -75,6 +79,6 @@ func (s *simpleLayer) SetWeights(weights [][]float64, biases []float64) {
 }
 
 func (s *simpleLayer) UpdateWeights(weights [][]float64, biases []float64) {
-	subMatrix(s.weights, weights)
-	subVector(s.biases, biases)
+	mat.SubMatrix(s.weights, weights)
+	mat.SubVector(s.biases, biases)
 }
