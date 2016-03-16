@@ -9,8 +9,6 @@ import (
 type Layer interface {
 	Forward(input []float64) []float64
 	Backward(delta []float64) []float64
-	// SetWeights(weights *mat64.Dense, biases *mat64.Dense)
-	// UpdateWeights(weights *mat64.Dense, biases *mat64.Dense)
 	SetWeights(weights [][]float64, biases []float64)
 	UpdateWeights(weights [][]float64, biases []float64)
 }
@@ -19,8 +17,6 @@ type simpleLayer struct {
 	weights [][]float64
 	biases  []float64
 
-	// weights *mat64.Dense
-	// biases  *mat64.Dense
 	inputs  int
 	neurons int
 }
