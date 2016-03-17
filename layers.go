@@ -1,10 +1,6 @@
 package neural
 
-import (
-	"math/rand"
-
-	"github.com/mrfuxi/neural/mat"
-)
+import "github.com/mrfuxi/neural/mat"
 
 type Layer interface {
 	Forward(input []float64) []float64
@@ -21,22 +17,10 @@ type simpleLayer struct {
 	neurons int
 }
 
-func randomMatrix(rows, cols int) [][]float64 {
-	data := make([][]float64, rows)
-	for row := range data {
-		data[row] = make([]float64, cols, cols)
-		for col := range data[row] {
-			data[row][col] = rand.Float64()
-		}
-	}
-
-	return data
-}
-
 func NewSimpleLayer(inputs, neurons int) Layer {
 	return &simpleLayer{
-		weights: randomMatrix(neurons, inputs),
-		biases:  randomMatrix(1, neurons)[0],
+		weights: mat.RandomMatrix(neurons, inputs),
+		biases:  mat.RandomVector(neurons),
 		inputs:  inputs,
 		neurons: neurons,
 	}

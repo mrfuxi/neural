@@ -1,5 +1,7 @@
 package mat
 
+import "math/rand"
+
 func CopyOfMatrix(src [][]float64) (dst [][]float64) {
 	dst = make([][]float64, len(src))
 	for i, row := range src {
@@ -60,4 +62,20 @@ func MulTransposeVector(a, b []float64) (dst [][]float64) {
 		}
 	}
 	return
+}
+
+func RandomVector(size int) []float64 {
+	vector := make([]float64, size, size)
+	for col := range vector {
+		vector[col] = rand.Float64()
+	}
+	return vector
+}
+
+func RandomMatrix(rows, cols int) [][]float64 {
+	data := make([][]float64, rows)
+	for row := range data {
+		data[row] = RandomVector(cols)
+	}
+	return data
 }
