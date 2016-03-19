@@ -1,11 +1,17 @@
 package neural_test
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/mrfuxi/neural"
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	// Predictable randomization
+	rand.Seed(1)
+}
 
 func TestFeedForwardCorrentOutputSize(t *testing.T) {
 	input := []float64{1, 1}
@@ -21,14 +27,6 @@ func TestFeedForwardCorrentOutputSize(t *testing.T) {
 		},
 		[]float64{10, 20, 30},
 	)
-	// layer.SetWeights(
-	// 	mat64.NewDense(3, 2, []float64{
-	// 		0.1, 2,
-	// 		0.2, 3,
-	// 		0.3, 4,
-	// 	}),
-	// 	mat64.NewDense(3, 1, []float64{10, 20, 30}),
-	// )
 
 	nn := neural.NewNeuralNetwork(activator, layer)
 	output := nn.Evaluate(input)
@@ -46,10 +44,6 @@ func TestBinaryAND(t *testing.T) {
 	}
 
 	layer := neural.NewSimpleLayer(2, 1)
-	// layer.SetWeights(
-	// 	mat64.NewDense(1, 2, []float64{1, 1}),
-	// 	mat64.NewDense(1, 1, []float64{-2}),
-	// )
 	layer.SetWeights(
 		[][]float64{{1, 1}},
 		[]float64{-2},

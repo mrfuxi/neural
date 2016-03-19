@@ -8,6 +8,10 @@ import (
 	"github.com/mrfuxi/neural/mat"
 )
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 type TrainExample struct {
 	Input  []float64
 	Output []float64
