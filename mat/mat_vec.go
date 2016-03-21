@@ -79,3 +79,19 @@ func RandomMatrix(rows, cols int) [][]float64 {
 	}
 	return data
 }
+
+func MulVectorElementWise(a, b []float64) (mul []float64) {
+	mul = make([]float64, len(a), len(a))
+	for i := range mul {
+		mul[i] = a[i] * b[i]
+	}
+	return
+}
+
+func SubVectorElementWise(a, b []float64) (diff []float64) {
+	diff = make([]float64, len(a), len(a))
+	for i := range diff {
+		diff[i] = a[i] - b[i]
+	}
+	return
+}

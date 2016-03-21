@@ -145,14 +145,15 @@ func (n *network) backPropagation(sample TrainExample) (deltaWeights [][][]float
 		potentialsPerLayer = append(potentialsPerLayer, potentials)
 	}
 
-	errors := n.Diff(acticationPerLayer[len(acticationPerLayer)-1], sample.Output)
-	delta := n.Delta(potentialsPerLayer[len(potentialsPerLayer)-1], errors)
+	errors := mat.SubVectorElementWise(acticationPerLayer[len(acticationPerLayer)-1], sample.Output)
+	spOut := n.Activate(potentialsPerLayer[len(potentialsPerLayer)-1], false)
+	delta := mat.MulVectorElementWise(spOut, errors)
 	deltaBias[layersCount-1] = mat.CopyOfVector(delta)
 	deltaWeights[layersCount-1] = mat.MulTransposeVector(delta, acticationPerLayer[len(acticationPerLayer)-2])
 
 	for l := 2; l <= layersCount; l++ {
 		sp := n.Activate(potentialsPerLayer[len(potentialsPerLayer)-l], false)
-		delta = n.Mul(n.layers[layersCount-l+1].Backward(delta), sp)
+		delta = mat.MulVectorElementWise(n.layers[layersCount-l+1].Backward(delta), sp)
 		deltaBias[layersCount-l] = mat.CopyOfVector(delta) // full copy can be avoided?
 		deltaWeights[layersCount-l] = mat.MulTransposeVector(delta, acticationPerLayer[len(acticationPerLayer)-l-1])
 	}
@@ -170,45 +171,6 @@ func (n *network) Activate(potentials []float64, forward bool) (output []float64
 		for i, potential := range potentials {
 			output[i] = n.activator.Derivative(potential)
 		}
-	}
-	return
-}
-
-func (n *network) Mul(a, b []float64) (mul []float64) {
-	if len(a) != len(b) {
-		errMsg := fmt.Sprintf("Incompatible sizes. %v vs %v", len(a), len(b))
-		panic(errMsg)
-	}
-
-	mul = make([]float64, len(a), len(a))
-	for i := range mul {
-		mul[i] = a[i] * b[i]
-	}
-	return mul
-}
-
-func (n *network) Diff(a, b []float64) (diff []float64) {
-	if len(a) != len(b) {
-		errMsg := fmt.Sprintf("Incompatible sizes. %v vs %v", len(a), len(b))
-		panic(errMsg)
-	}
-
-	diff = make([]float64, len(a), len(a))
-	for i := range diff {
-		diff[i] = a[i] - b[i]
-	}
-	return
-}
-
-func (n *network) Delta(potentials, errors []float64) (delta []float64) {
-	if len(potentials) != len(errors) {
-		errMsg := fmt.Sprintf("Incompatible sizes. %v vs %v", len(potentials), len(errors))
-		panic(errMsg)
-	}
-
-	delta = make([]float64, len(potentials), len(potentials))
-	for i := range potentials {
-		delta[i] = errors[i] * n.activator.Derivative(potentials[i])
 	}
 	return
 }
