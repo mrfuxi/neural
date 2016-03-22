@@ -1,6 +1,9 @@
 package mat
 
-import "math/rand"
+import (
+	"math"
+	"math/rand"
+)
 
 func CopyOfMatrix(src [][]float64) (dst [][]float64) {
 	dst = make([][]float64, len(src))
@@ -67,7 +70,7 @@ func MulTransposeVector(a, b []float64) (dst [][]float64) {
 func RandomVector(size int) []float64 {
 	vector := make([]float64, size, size)
 	for col := range vector {
-		vector[col] = rand.Float64()
+		vector[col] = rand.NormFloat64()
 	}
 	return vector
 }
@@ -93,5 +96,13 @@ func SubVectorElementWise(a, b []float64) (diff []float64) {
 	for i := range diff {
 		diff[i] = a[i] - b[i]
 	}
+	return
+}
+
+func VectorLen(a []float64) (vLen float64) {
+	for _, val := range a {
+		vLen += val * val
+	}
+	vLen = math.Sqrt(vLen)
 	return
 }

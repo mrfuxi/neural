@@ -47,5 +47,5 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	nn.Train(trainData, 5, 100, 3)
+	nn.Train(trainData, 10, 100, 3)
 }

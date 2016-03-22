@@ -113,6 +113,7 @@ func (n *network) updateMiniBatch(miniBatch []TrainExample, learningRate float64
 				mat.SumVector(sumDeltaBias[l], c.biases[l])
 			}
 		}
+
 		idx++
 		if idx == samples {
 			close(buff)

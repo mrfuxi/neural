@@ -10,7 +10,7 @@ import (
 
 func init() {
 	// Predictable randomization
-	rand.Seed(1)
+	rand.Seed(2)
 }
 
 func TestFeedForwardCorrentOutputSize(t *testing.T) {
