@@ -60,7 +60,7 @@ func (n *network) Train(trainExamples []TrainExample, epochs int, miniBatchSize 
 		batchRanges[b] = Range{min, max}
 	}
 
-	for epoch := 0; epoch <= epochs; epoch++ {
+	for epoch := 1; epoch <= epochs; epoch++ {
 		// Shuffle training data
 		for i := range trainExamples {
 			j := rand.Intn(i + 1)
@@ -71,10 +71,11 @@ func (n *network) Train(trainExamples []TrainExample, epochs int, miniBatchSize 
 			t0 := time.Now()
 			n.updateMiniBatch(trainExamples[batch.from:batch.to], learningRate)
 			dt := time.Since(t0)
-			if b%10 == 0 {
-				fmt.Printf("%v/%v %v/%v    %v\r", epoch, epochs, b+1, batches, dt)
+			if b%100 == 0 {
+				fmt.Printf("%v/%v %v/%v    %v     \r", epoch, epochs, b, batches, dt)
 			}
 		}
+
 	}
 }
 

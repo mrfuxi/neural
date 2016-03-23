@@ -106,3 +106,16 @@ func VectorLen(a []float64) (vLen float64) {
 	vLen = math.Sqrt(vLen)
 	return
 }
+
+func ArgMax(a []float64) int {
+	maxVal := math.SmallestNonzeroFloat64
+	maxArg := -1
+
+	for i, val := range a {
+		if val > maxVal {
+			maxVal = val
+			maxArg = i
+		}
+	}
+	return maxArg
+}
