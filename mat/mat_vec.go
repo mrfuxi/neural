@@ -3,6 +3,7 @@ package mat
 import (
 	"math"
 	"math/rand"
+	"sync"
 )
 
 func CopyOfMatrix(src [][]float64) (dst [][]float64) {
@@ -56,15 +57,27 @@ func MulMatrixByScalar(dst [][]float64, scalar float64) {
 	}
 }
 
-func MulTransposeVector(a, b []float64) (dst [][]float64) {
-	dst = make([][]float64, len(a))
-	for i, valA := range a {
-		dst[i] = make([]float64, len(b))
-		for j, valB := range b {
-			dst[i][j] = valA * valB
+func MulTransposeVector(dst [][]float64, a, b []float64) [][]float64 {
+	if dst == nil {
+		dst = make([][]float64, len(a))
+		for i := range a {
+			dst[i] = make([]float64, len(b))
 		}
 	}
-	return
+
+	wg := sync.WaitGroup{}
+
+	for i, valA := range a {
+		wg.Add(1)
+		go func(i int, valA float64) {
+			for j, valB := range b {
+				dst[i][j] += valA * valB
+			}
+			wg.Done()
+		}(i, valA)
+	}
+	wg.Wait()
+	return dst
 }
 
 func RandomVector(size int) []float64 {
@@ -72,6 +85,7 @@ func RandomVector(size int) []float64 {
 	for col := range vector {
 		vector[col] = rand.NormFloat64()
 	}
+
 	return vector
 }
 
@@ -118,4 +132,22 @@ func ArgMax(a []float64) int {
 		}
 	}
 	return maxArg
+}
+
+func ZeroVector(a []float64) {
+	for i := range a {
+		a[i] = 0
+	}
+}
+
+func ZeroMatrix(a [][]float64) {
+	for _, vec := range a {
+		ZeroVector(vec)
+	}
+}
+
+func ZeroVectorOfMatrixes(a [][][]float64) {
+	for _, m := range a {
+		ZeroMatrix(m)
+	}
 }

@@ -3,10 +3,11 @@ package neural
 import "github.com/mrfuxi/neural/mat"
 
 type Layer interface {
-	Forward(input []float64) []float64
+	Forward(dst, input []float64) []float64
 	Backward(delta []float64) []float64
 	SetWeights(weights [][]float64, biases []float64)
 	UpdateWeights(weights [][]float64, biases []float64)
+	Shapes() (weightsRow, weightsCol, biasesCol int)
 }
 
 type simpleLayer struct {
@@ -26,17 +27,23 @@ func NewSimpleLayer(inputs, neurons int) Layer {
 	}
 }
 
-func (s *simpleLayer) Forward(input []float64) []float64 {
-	outMat := make([]float64, s.neurons, s.neurons)
-	copy(outMat, s.biases)
+func (s *simpleLayer) Shapes() (weightsRow, weightsCol, biasesCol int) {
+	return s.neurons, s.inputs, s.neurons
+}
+
+func (s *simpleLayer) Forward(dst, input []float64) []float64 {
+	if dst == nil {
+		dst = make([]float64, s.neurons, s.neurons)
+	}
+	copy(dst, s.biases)
 
 	for r, row := range s.weights {
 		for c, inputValue := range input {
-			outMat[r] += row[c] * inputValue
+			dst[r] += row[c] * inputValue
 		}
 	}
 
-	return outMat
+	return dst
 }
 
 func (s *simpleLayer) Backward(input []float64) []float64 {

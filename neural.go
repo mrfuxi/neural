@@ -20,7 +20,10 @@ type TrainExample struct {
 // Evaluator wraps main tasks of NN, evaluate input data
 type Evaluator interface {
 	Evaluate(input []float64) []float64
+	Layers() []Layer
+	Activate(dst, potentials []float64, forward bool) (output []float64)
 	Train(trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64)
+	TrainNew(trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64)
 }
 
 type network struct {
@@ -32,11 +35,24 @@ func (n *network) Evaluate(input []float64) []float64 {
 	output := input
 
 	for _, layer := range n.layers {
-		potentials := layer.Forward(output)
-		output = n.Activate(potentials, true)
+		potentials := layer.Forward(nil, output)
+		output = n.Activate(nil, potentials, true)
 	}
 
 	return output
+}
+
+func (n *network) Layers() []Layer {
+	return n.layers
+}
+
+func (n *network) TrainNew(trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64) {
+	trainers := make([]Trainer, 4, 4)
+	for i := range trainers {
+		trainers[i] = &BackwardPropagationTrainer{}
+	}
+
+	Train(n, trainExamples, epochs, miniBatchSize, learningRate, trainers...)
 }
 
 func (n *network) Train(trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64) {
@@ -90,7 +106,7 @@ func (n *network) updateMiniBatch(miniBatch []TrainExample, learningRate float64
 
 	sumDeltaBias := make([][]float64, layersCount, layersCount)
 	sumDeltaWeights := make([][][]float64, layersCount, layersCount)
-	buff := make(chan cn)
+	buff := make(chan cn, 1000)
 
 	for _, sample := range miniBatch {
 		go func(sample TrainExample) {
@@ -141,40 +157,42 @@ func (n *network) backPropagation(sample TrainExample) (deltaWeights [][][]float
 	input := sample.Input
 	acticationPerLayer = append(acticationPerLayer, input)
 	for _, layer := range n.layers {
-		potentials := layer.Forward(input)
-		input = n.Activate(potentials, true)
+		potentials := layer.Forward(nil, input)
+		input = n.Activate(nil, potentials, true)
 		acticationPerLayer = append(acticationPerLayer, input)
 		potentialsPerLayer = append(potentialsPerLayer, potentials)
 	}
 
 	errors := mat.SubVectorElementWise(acticationPerLayer[len(acticationPerLayer)-1], sample.Output)
-	spOut := n.Activate(potentialsPerLayer[len(potentialsPerLayer)-1], false)
+	spOut := n.Activate(nil, potentialsPerLayer[len(potentialsPerLayer)-1], false)
 	delta := mat.MulVectorElementWise(spOut, errors)
 	deltaBias[layersCount-1] = mat.CopyOfVector(delta)
-	deltaWeights[layersCount-1] = mat.MulTransposeVector(delta, acticationPerLayer[len(acticationPerLayer)-2])
+	deltaWeights[layersCount-1] = mat.MulTransposeVector(deltaWeights[layersCount-1], delta, acticationPerLayer[len(acticationPerLayer)-2])
 
 	for l := 2; l <= layersCount; l++ {
-		sp := n.Activate(potentialsPerLayer[len(potentialsPerLayer)-l], false)
+		sp := n.Activate(nil, potentialsPerLayer[len(potentialsPerLayer)-l], false)
 		delta = mat.MulVectorElementWise(n.layers[layersCount-l+1].Backward(delta), sp)
 		deltaBias[layersCount-l] = mat.CopyOfVector(delta) // full copy can be avoided?
-		deltaWeights[layersCount-l] = mat.MulTransposeVector(delta, acticationPerLayer[len(acticationPerLayer)-l-1])
+		deltaWeights[layersCount-l] = mat.MulTransposeVector(deltaWeights[layersCount-l], delta, acticationPerLayer[len(acticationPerLayer)-l-1])
 	}
 	return
 }
 
-func (n *network) Activate(potentials []float64, forward bool) (output []float64) {
-	output = make([]float64, len(potentials), len(potentials))
+func (n *network) Activate(dst, potentials []float64, forward bool) (output []float64) {
+	if dst == nil {
+		dst = make([]float64, len(potentials), len(potentials))
+	}
 
 	if forward {
 		for i, potential := range potentials {
-			output[i] = n.activator.Activation(potential)
+			dst[i] = n.activator.Activation(potential)
 		}
 	} else {
 		for i, potential := range potentials {
-			output[i] = n.activator.Derivative(potential)
+			dst[i] = n.activator.Derivative(potential)
 		}
 	}
-	return
+	return dst
 }
 
 // NewNeuralNetwork initializes empty neural network
