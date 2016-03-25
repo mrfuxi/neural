@@ -47,7 +47,7 @@ func (n *network) Layers() []Layer {
 }
 
 func (n *network) TrainNew(trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64) {
-	trainers := make([]Trainer, 4, 4)
+	trainers := make([]Trainer, miniBatchSize, miniBatchSize)
 	for i := range trainers {
 		trainers[i] = &BackwardPropagationTrainer{}
 	}
@@ -165,13 +165,13 @@ func (n *network) backPropagation(sample TrainExample) (deltaWeights [][][]float
 
 	errors := mat.SubVectorElementWise(acticationPerLayer[len(acticationPerLayer)-1], sample.Output)
 	spOut := n.Activate(nil, potentialsPerLayer[len(potentialsPerLayer)-1], false)
-	delta := mat.MulVectorElementWise(spOut, errors)
+	delta := mat.MulVectorElementWise(nil, spOut, errors)
 	deltaBias[layersCount-1] = mat.CopyOfVector(delta)
 	deltaWeights[layersCount-1] = mat.MulTransposeVector(deltaWeights[layersCount-1], delta, acticationPerLayer[len(acticationPerLayer)-2])
 
 	for l := 2; l <= layersCount; l++ {
 		sp := n.Activate(nil, potentialsPerLayer[len(potentialsPerLayer)-l], false)
-		delta = mat.MulVectorElementWise(n.layers[layersCount-l+1].Backward(delta), sp)
+		delta = mat.MulVectorElementWise(nil, n.layers[layersCount-l+1].Backward(delta), sp)
 		deltaBias[layersCount-l] = mat.CopyOfVector(delta) // full copy can be avoided?
 		deltaWeights[layersCount-l] = mat.MulTransposeVector(deltaWeights[layersCount-l], delta, acticationPerLayer[len(acticationPerLayer)-l-1])
 	}

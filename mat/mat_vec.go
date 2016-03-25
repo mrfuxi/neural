@@ -3,7 +3,6 @@ package mat
 import (
 	"math"
 	"math/rand"
-	"sync"
 )
 
 func CopyOfMatrix(src [][]float64) (dst [][]float64) {
@@ -65,18 +64,12 @@ func MulTransposeVector(dst [][]float64, a, b []float64) [][]float64 {
 		}
 	}
 
-	wg := sync.WaitGroup{}
-
 	for i, valA := range a {
-		wg.Add(1)
-		go func(i int, valA float64) {
-			for j, valB := range b {
-				dst[i][j] += valA * valB
-			}
-			wg.Done()
-		}(i, valA)
+		row := dst[i]
+		for j, valB := range b {
+			row[j] = valA * valB
+		}
 	}
-	wg.Wait()
 	return dst
 }
 
@@ -97,12 +90,14 @@ func RandomMatrix(rows, cols int) [][]float64 {
 	return data
 }
 
-func MulVectorElementWise(a, b []float64) (mul []float64) {
-	mul = make([]float64, len(a), len(a))
-	for i := range mul {
-		mul[i] = a[i] * b[i]
+func MulVectorElementWise(dst, a, b []float64) []float64 {
+	if dst == nil {
+		dst = make([]float64, len(a), len(a))
 	}
-	return
+	for i := range dst {
+		dst[i] = a[i] * b[i]
+	}
+	return dst
 }
 
 func SubVectorElementWise(a, b []float64) (diff []float64) {

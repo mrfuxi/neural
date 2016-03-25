@@ -15,6 +15,7 @@ import (
 
 var (
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	validate   = flag.Bool("validate", false, "validate against test data")
 	inputSize  = GoMNIST.Width * GoMNIST.Height
 )
 
@@ -62,17 +63,19 @@ func main() {
 	}
 
 	t0 := time.Now()
-
-	nn.Train(trainData, 1, 10, 4)
+	nn.TrainNew(trainData, 1, 10, 4)
 	dt := time.Since(t0)
 
-	different := 0
-	for _, sample := range testData {
-		output := nn.Evaluate(sample.Input)
-		if mat.ArgMax(output) != mat.ArgMax(sample.Output) {
-			different++
+	fmt.Println("Training complete in", dt)
+	if *validate {
+		different := 0
+		for _, sample := range testData {
+			output := nn.Evaluate(sample.Input)
+			if mat.ArgMax(output) != mat.ArgMax(sample.Output) {
+				different++
+			}
 		}
+		success := 100 * float64(different) / float64(test.Count())
+		fmt.Printf("Error: %.2f%% \n", success)
 	}
-	success := 100 * float64(different) / float64(len(testData))
-	fmt.Printf("\nTraining complete in %v: %.2f%% \n", dt, success)
 }

@@ -8,11 +8,40 @@ import (
 	"github.com/mrfuxi/neural/mat"
 )
 
+type WeightUpdates struct {
+	Biases  [][]float64
+	Weights [][][]float64
+}
+
+func NewWeightUpdates(network Evaluator) *WeightUpdates {
+	layers := network.Layers()
+	layersCount := len(layers)
+	deltaBias := make([][]float64, layersCount, layersCount)
+	deltaWeights := make([][][]float64, layersCount, layersCount)
+
+	for l, layer := range layers {
+		weightsRow, weightsCol, biasesCol := layer.Shapes()
+		deltaBias[l] = make([]float64, biasesCol, biasesCol)
+		deltaWeights[l] = make([][]float64, weightsRow, weightsRow)
+
+		for r := range deltaWeights[l] {
+			deltaWeights[l][r] = make([]float64, weightsCol, weightsCol)
+		}
+	}
+
+	return &WeightUpdates{
+		Biases:  deltaBias,
+		Weights: deltaWeights,
+	}
+}
+
+func (w *WeightUpdates) Zero() {
+	mat.ZeroMatrix(w.Biases)
+	mat.ZeroVectorOfMatrixes(w.Weights)
+}
+
 type Trainer interface {
-	StartProcessing(network Evaluator, samples <-chan TrainExample, processed chan<- bool)
-	WeightUpdates() (weights [][][]float64, biases [][]float64)
-	Processed() bool
-	Reset()
+	StartProcessing(network Evaluator, samples <-chan TrainExample, weightPlaceholders <-chan *WeightUpdates, weightUpdates chan<- *WeightUpdates)
 }
 
 type batchRange struct {
@@ -21,16 +50,21 @@ type batchRange struct {
 
 func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64, trainers ...Trainer) {
 	samples := make(chan TrainExample, miniBatchSize)
-	samplesProcessed := make(chan bool, miniBatchSize)
+	weightUpdatePlaceholders := make(chan *WeightUpdates, miniBatchSize)
+	weightUpdates := make(chan *WeightUpdates, miniBatchSize)
 	batchRanges := getBatchRanges(len(trainExamples), miniBatchSize)
 
 	layers := network.Layers()
 
-	layersCount := len(layers)
-
 	for _, trainer := range trainers {
-		go trainer.StartProcessing(network, samples, samplesProcessed)
+		go trainer.StartProcessing(network, samples, weightUpdatePlaceholders, weightUpdates)
 	}
+
+	for i := 0; i < miniBatchSize; i++ {
+		weightUpdatePlaceholders <- NewWeightUpdates(network)
+	}
+
+	sumWeights := NewWeightUpdates(network)
 
 	for epoch := 1; epoch <= epochs; epoch++ {
 		shuffleTrainExamples(trainExamples)
@@ -42,46 +76,21 @@ func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatc
 				samples <- sample
 			}
 
-			// wait for all samples to be processed
-			// ToDo: Replace with "for i:=0; ..."
-			for range trainExamples[batch.from:batch.to] {
-				<-samplesProcessed
-			}
-
-			sumDeltaBias := make([][]float64, layersCount, layersCount)
-			sumDeltaWeights := make([][][]float64, layersCount, layersCount)
-
-			for _, trainer := range trainers {
-				weights, biases := trainer.WeightUpdates()
-				if !trainer.Processed() {
-					continue
-				}
-
-				// ToDo: Replace with "for l:=0; ..."
+			sumWeights.Zero()
+			for step := 0; step < batchSize; step++ {
+				weightUpdate := <-weightUpdates
 				for l := range layers {
-					if sumDeltaWeights[l] == nil {
-						sumDeltaWeights[l] = mat.CopyOfMatrix(weights[l])
-					} else {
-						mat.SumMatrix(sumDeltaWeights[l], weights[l])
-					}
-
-					if sumDeltaBias[l] == nil {
-						sumDeltaBias[l] = mat.CopyOfVector(biases[l])
-					} else {
-						mat.SumVector(sumDeltaBias[l], biases[l])
-					}
+					mat.SumMatrix(sumWeights.Weights[l], weightUpdate.Weights[l])
+					mat.SumVector(sumWeights.Biases[l], weightUpdate.Biases[l])
 				}
+				weightUpdatePlaceholders <- weightUpdate
 			}
 
 			rate := learningRate / float64(batchSize)
 			for l, layer := range layers {
-				mat.MulVectorByScalar(sumDeltaBias[l], rate)
-				mat.MulMatrixByScalar(sumDeltaWeights[l], rate)
-				layer.UpdateWeights(sumDeltaWeights[l], sumDeltaBias[l])
-			}
-
-			for _, trainer := range trainers {
-				trainer.Reset()
+				mat.MulVectorByScalar(sumWeights.Biases[l], rate)
+				mat.MulMatrixByScalar(sumWeights.Weights[l], rate)
+				layer.UpdateWeights(sumWeights.Weights[l], sumWeights.Biases[l])
 			}
 
 			dt := time.Since(t0)
@@ -123,34 +132,20 @@ type BackwardPropagationTrainer struct {
 	network Evaluator
 	layers  []Layer
 
-	processed    bool
-	deltaBias    [][]float64
-	deltaWeights [][][]float64
-
 	acticationPerLayer [][]float64
 	potentialsPerLayer [][]float64
 }
 
-func (b *BackwardPropagationTrainer) StartProcessing(network Evaluator, samples <-chan TrainExample, processed chan<- bool) {
+func (b *BackwardPropagationTrainer) StartProcessing(network Evaluator, samples <-chan TrainExample, weightPlaceholders <-chan *WeightUpdates, weightUpdates chan<- *WeightUpdates) {
 	b.network = network
 	b.layers = b.network.Layers()
-	b.processed = false
 
 	layersCount := len(b.layers)
-	b.deltaBias = make([][]float64, layersCount, layersCount)
-	b.deltaWeights = make([][][]float64, layersCount, layersCount)
 	b.acticationPerLayer = make([][]float64, layersCount+1, layersCount+1)
 	b.potentialsPerLayer = make([][]float64, layersCount, layersCount)
 
 	for l, layer := range b.layers {
-		weightsRow, weightsCol, biasesCol := layer.Shapes()
-		b.deltaBias[l] = make([]float64, biasesCol, biasesCol)
-		b.deltaWeights[l] = make([][]float64, weightsRow, weightsRow)
-
-		for r := range b.deltaWeights[l] {
-			b.deltaWeights[l][r] = make([]float64, weightsCol, weightsCol)
-		}
-
+		_, weightsCol, biasesCol := layer.Shapes()
 		if l == 0 {
 			b.acticationPerLayer[0] = make([]float64, weightsCol, weightsCol)
 		}
@@ -160,13 +155,13 @@ func (b *BackwardPropagationTrainer) StartProcessing(network Evaluator, samples 
 	}
 
 	for sample := range samples {
-		b.backwardPropagation(sample)
-		b.processed = true
-		processed <- true
+		weights := <-weightPlaceholders
+		b.backwardPropagation(sample, weights)
+		weightUpdates <- weights
 	}
 }
 
-func (b *BackwardPropagationTrainer) backwardPropagation(sample TrainExample) {
+func (b *BackwardPropagationTrainer) backwardPropagation(sample TrainExample, weightPlaceholders *WeightUpdates) {
 	layersCount := len(b.layers)
 
 	copy(b.acticationPerLayer[0], sample.Input)
@@ -177,34 +172,14 @@ func (b *BackwardPropagationTrainer) backwardPropagation(sample TrainExample) {
 
 	errors := mat.SubVectorElementWise(b.acticationPerLayer[len(b.acticationPerLayer)-1], sample.Output)
 	spOut := b.network.Activate(nil, b.potentialsPerLayer[len(b.potentialsPerLayer)-1], false)
-	delta := mat.MulVectorElementWise(spOut, errors)
+	delta := mat.MulVectorElementWise(weightPlaceholders.Biases[layersCount-1], spOut, errors)
 
-	mat.SumVector(b.deltaBias[layersCount-1], delta)
-	mat.MulTransposeVector(b.deltaWeights[layersCount-1], delta, b.acticationPerLayer[len(b.acticationPerLayer)-2])
+	mat.MulTransposeVector(weightPlaceholders.Weights[layersCount-1], delta, b.acticationPerLayer[len(b.acticationPerLayer)-2])
 
 	for l := 2; l <= layersCount; l++ {
 		sp := b.network.Activate(nil, b.potentialsPerLayer[len(b.potentialsPerLayer)-l], false)
-		delta = mat.MulVectorElementWise(b.layers[layersCount-l+1].Backward(delta), sp)
 
-		mat.SumVector(b.deltaBias[layersCount-l], delta)
-		mat.MulTransposeVector(b.deltaWeights[layersCount-l], delta, b.acticationPerLayer[len(b.acticationPerLayer)-l-1])
+		delta = mat.MulVectorElementWise(weightPlaceholders.Biases[layersCount-l], b.layers[layersCount-l+1].Backward(delta), sp)
+		mat.MulTransposeVector(weightPlaceholders.Weights[layersCount-l], delta, b.acticationPerLayer[len(b.acticationPerLayer)-l-1])
 	}
-	return
-}
-
-func (b *BackwardPropagationTrainer) WeightUpdates() (weights [][][]float64, biases [][]float64) {
-	return b.deltaWeights, b.deltaBias
-}
-
-func (b *BackwardPropagationTrainer) Processed() bool {
-	return b.processed
-}
-
-func (b *BackwardPropagationTrainer) Reset() {
-	if !b.processed {
-		return
-	}
-	b.processed = false
-	mat.ZeroMatrix(b.deltaBias)
-	mat.ZeroVectorOfMatrixes(b.deltaWeights)
 }
