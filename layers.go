@@ -35,12 +35,14 @@ func (s *simpleLayer) Forward(dst, input []float64) []float64 {
 	if dst == nil {
 		dst = make([]float64, s.neurons, s.neurons)
 	}
-	copy(dst, s.biases)
 
+	tmp := 0.0
 	for r, row := range s.weights {
+		tmp = 0.0
 		for c, inputValue := range input {
-			dst[r] += row[c] * inputValue
+			tmp += row[c] * inputValue
 		}
+		dst[r] = tmp + s.biases[r]
 	}
 
 	return dst

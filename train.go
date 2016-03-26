@@ -13,7 +13,7 @@ type WeightUpdates struct {
 	Weights [][][]float64
 }
 
-func NewWeightUpdates(network Evaluator) *WeightUpdates {
+func NewWeightUpdates(network Evaluator) WeightUpdates {
 	layers := network.Layers()
 	layersCount := len(layers)
 	deltaBias := make([][]float64, layersCount, layersCount)
@@ -29,7 +29,7 @@ func NewWeightUpdates(network Evaluator) *WeightUpdates {
 		}
 	}
 
-	return &WeightUpdates{
+	return WeightUpdates{
 		Biases:  deltaBias,
 		Weights: deltaWeights,
 	}
@@ -41,7 +41,8 @@ func (w *WeightUpdates) Zero() {
 }
 
 type Trainer interface {
-	StartProcessing(network Evaluator, samples <-chan TrainExample, weightPlaceholders <-chan *WeightUpdates, weightUpdates chan<- *WeightUpdates)
+	Process(sample TrainExample, weightUpdates *WeightUpdates)
+	SetUp(network Evaluator)
 }
 
 type batchRange struct {
@@ -49,19 +50,18 @@ type batchRange struct {
 }
 
 func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64, trainers ...Trainer) {
-	samples := make(chan TrainExample, miniBatchSize)
-	weightUpdatePlaceholders := make(chan *WeightUpdates, miniBatchSize)
-	weightUpdates := make(chan *WeightUpdates, miniBatchSize)
 	batchRanges := getBatchRanges(len(trainExamples), miniBatchSize)
+	weightUpdates := make([]WeightUpdates, miniBatchSize, miniBatchSize)
+	ready := make(chan int, miniBatchSize)
 
 	layers := network.Layers()
 
 	for _, trainer := range trainers {
-		go trainer.StartProcessing(network, samples, weightUpdatePlaceholders, weightUpdates)
+		trainer.SetUp(network)
 	}
 
-	for i := 0; i < miniBatchSize; i++ {
-		weightUpdatePlaceholders <- NewWeightUpdates(network)
+	for i := range weightUpdates {
+		weightUpdates[i] = NewWeightUpdates(network)
 	}
 
 	sumWeights := NewWeightUpdates(network)
@@ -71,19 +71,27 @@ func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatc
 
 		for b, batch := range batchRanges {
 			t0 := time.Now()
-			batchSize := batch.to - batch.from
-			for _, sample := range trainExamples[batch.from:batch.to] {
-				samples <- sample
+			samples := trainExamples[batch.from:batch.to]
+			for i := range samples {
+				go func(i int) {
+					trainers[i].Process(samples[i], &weightUpdates[i])
+					ready <- i
+				}(i)
 			}
 
 			sumWeights.Zero()
-			for step := 0; step < batchSize; step++ {
-				weightUpdate := <-weightUpdates
+			batchSize := batch.to - batch.from
+			processed := 0
+			for i := range ready {
+				weightUpdate := weightUpdates[i]
 				for l := range layers {
 					mat.SumMatrix(sumWeights.Weights[l], weightUpdate.Weights[l])
 					mat.SumVector(sumWeights.Biases[l], weightUpdate.Biases[l])
 				}
-				weightUpdatePlaceholders <- weightUpdate
+				processed++
+				if processed == batchSize {
+					break
+				}
 			}
 
 			rate := learningRate / float64(batchSize)
@@ -93,13 +101,12 @@ func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatc
 				layer.UpdateWeights(sumWeights.Weights[l], sumWeights.Biases[l])
 			}
 
-			dt := time.Since(t0)
-			if b%100 == 0 {
+			if b%1000 == 0 {
+				dt := time.Since(t0)
 				fmt.Printf("%v/%v %v/%v    %v     \r", epoch, epochs, b, len(batchRanges), dt)
 			}
 		}
 	}
-	close(samples)
 }
 
 func shuffleTrainExamples(trainExamples []TrainExample) {
@@ -136,7 +143,7 @@ type BackwardPropagationTrainer struct {
 	potentialsPerLayer [][]float64
 }
 
-func (b *BackwardPropagationTrainer) StartProcessing(network Evaluator, samples <-chan TrainExample, weightPlaceholders <-chan *WeightUpdates, weightUpdates chan<- *WeightUpdates) {
+func (b *BackwardPropagationTrainer) SetUp(network Evaluator) {
 	b.network = network
 	b.layers = b.network.Layers()
 
@@ -153,15 +160,10 @@ func (b *BackwardPropagationTrainer) StartProcessing(network Evaluator, samples 
 		b.acticationPerLayer[l+1] = make([]float64, biasesCol, biasesCol)
 		b.potentialsPerLayer[l] = make([]float64, biasesCol, biasesCol)
 	}
-
-	for sample := range samples {
-		weights := <-weightPlaceholders
-		b.backwardPropagation(sample, weights)
-		weightUpdates <- weights
-	}
 }
 
-func (b *BackwardPropagationTrainer) backwardPropagation(sample TrainExample, weightPlaceholders *WeightUpdates) {
+// Process executes backward propagation algorithm
+func (b *BackwardPropagationTrainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
 	layersCount := len(b.layers)
 
 	copy(b.acticationPerLayer[0], sample.Input)
@@ -172,14 +174,14 @@ func (b *BackwardPropagationTrainer) backwardPropagation(sample TrainExample, we
 
 	errors := mat.SubVectorElementWise(b.acticationPerLayer[len(b.acticationPerLayer)-1], sample.Output)
 	spOut := b.network.Activate(nil, b.potentialsPerLayer[len(b.potentialsPerLayer)-1], false)
-	delta := mat.MulVectorElementWise(weightPlaceholders.Biases[layersCount-1], spOut, errors)
+	delta := mat.MulVectorElementWise(weightUpdates.Biases[layersCount-1], spOut, errors)
 
-	mat.MulTransposeVector(weightPlaceholders.Weights[layersCount-1], delta, b.acticationPerLayer[len(b.acticationPerLayer)-2])
+	mat.MulTransposeVector(weightUpdates.Weights[layersCount-1], delta, b.acticationPerLayer[len(b.acticationPerLayer)-2])
 
 	for l := 2; l <= layersCount; l++ {
 		sp := b.network.Activate(nil, b.potentialsPerLayer[len(b.potentialsPerLayer)-l], false)
 
-		delta = mat.MulVectorElementWise(weightPlaceholders.Biases[layersCount-l], b.layers[layersCount-l+1].Backward(delta), sp)
-		mat.MulTransposeVector(weightPlaceholders.Weights[layersCount-l], delta, b.acticationPerLayer[len(b.acticationPerLayer)-l-1])
+		delta = mat.MulVectorElementWise(weightUpdates.Biases[layersCount-l], b.layers[layersCount-l+1].Backward(delta), sp)
+		mat.MulTransposeVector(weightUpdates.Weights[layersCount-l], delta, b.acticationPerLayer[len(b.acticationPerLayer)-l-1])
 	}
 }
