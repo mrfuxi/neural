@@ -13,6 +13,13 @@ type WeightUpdates struct {
 	Weights [][][]float64
 }
 
+type Trainer interface {
+	Process(sample TrainExample, weightUpdates *WeightUpdates)
+	// SetUp(network Evaluator)
+}
+
+type TrainerFactory func(network Evaluator) Trainer
+
 func NewWeightUpdates(network Evaluator) WeightUpdates {
 	layers := network.Layers()
 	layersCount := len(layers)
@@ -40,26 +47,22 @@ func (w *WeightUpdates) Zero() {
 	mat.ZeroVectorOfMatrixes(w.Weights)
 }
 
-type Trainer interface {
-	Process(sample TrainExample, weightUpdates *WeightUpdates)
-	SetUp(network Evaluator)
-}
-
 type batchRange struct {
 	from, to int
 }
 
-func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64, trainers ...Trainer) {
+func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64, trainerFactory TrainerFactory) {
 	batchRanges := getBatchRanges(len(trainExamples), miniBatchSize)
-	weightUpdates := make([]WeightUpdates, miniBatchSize, miniBatchSize)
 	ready := make(chan int, miniBatchSize)
 
 	layers := network.Layers()
 
-	for _, trainer := range trainers {
-		trainer.SetUp(network)
+	trainers := make([]Trainer, miniBatchSize, miniBatchSize)
+	for i := range trainers {
+		trainers[i] = trainerFactory(network)
 	}
 
+	weightUpdates := make([]WeightUpdates, miniBatchSize, miniBatchSize)
 	for i := range weightUpdates {
 		weightUpdates[i] = NewWeightUpdates(network)
 	}
@@ -135,7 +138,7 @@ func getBatchRanges(samples, miniBatchSize int) []batchRange {
 	return batchRanges
 }
 
-type BackwardPropagationTrainer struct {
+type backwardPropagationTrainer struct {
 	network Evaluator
 	layers  []Layer
 
@@ -143,27 +146,30 @@ type BackwardPropagationTrainer struct {
 	potentialsPerLayer [][]float64
 }
 
-func (b *BackwardPropagationTrainer) SetUp(network Evaluator) {
-	b.network = network
-	b.layers = b.network.Layers()
+func NewBackwardPropagationTrainer(network Evaluator) Trainer {
+	trainer := backwardPropagationTrainer{
+		network: network,
+		layers:  network.Layers(),
+	}
 
-	layersCount := len(b.layers)
-	b.acticationPerLayer = make([][]float64, layersCount+1, layersCount+1)
-	b.potentialsPerLayer = make([][]float64, layersCount, layersCount)
+	layersCount := len(trainer.layers)
+	trainer.acticationPerLayer = make([][]float64, layersCount+1, layersCount+1)
+	trainer.potentialsPerLayer = make([][]float64, layersCount, layersCount)
 
-	for l, layer := range b.layers {
+	for l, layer := range trainer.layers {
 		_, weightsCol, biasesCol := layer.Shapes()
 		if l == 0 {
-			b.acticationPerLayer[0] = make([]float64, weightsCol, weightsCol)
+			trainer.acticationPerLayer[0] = make([]float64, weightsCol, weightsCol)
 		}
 
-		b.acticationPerLayer[l+1] = make([]float64, biasesCol, biasesCol)
-		b.potentialsPerLayer[l] = make([]float64, biasesCol, biasesCol)
+		trainer.acticationPerLayer[l+1] = make([]float64, biasesCol, biasesCol)
+		trainer.potentialsPerLayer[l] = make([]float64, biasesCol, biasesCol)
 	}
+	return &trainer
 }
 
 // Process executes backward propagation algorithm
-func (b *BackwardPropagationTrainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
+func (b *backwardPropagationTrainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
 	layersCount := len(b.layers)
 
 	copy(b.acticationPerLayer[0], sample.Input)

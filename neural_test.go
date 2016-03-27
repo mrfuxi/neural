@@ -70,7 +70,7 @@ func TestLearnAND(t *testing.T) {
 	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork(activator, outLayer)
 
-	nn.Train(testMatrix, 1000, 2, 3)
+	neural.Train(nn, testMatrix, 1000, 2, 3, neural.NewBackwardPropagationTrainer)
 
 	for _, example := range testMatrix {
 		output := nn.Evaluate(example.Input)
@@ -90,7 +90,7 @@ func TestLearnOR(t *testing.T) {
 	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork(activator, outLayer)
 
-	nn.Train(testMatrix, 1000, 2, 3)
+	neural.Train(nn, testMatrix, 1000, 2, 3, neural.NewBackwardPropagationTrainer)
 
 	for _, example := range testMatrix {
 		output := nn.Evaluate(example.Input)
@@ -170,31 +170,7 @@ func TestLearnXOR(t *testing.T) {
 	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork(activator, hiddenLayer1, outLayer)
 
-	nn.Train(testMatrix, 1000, 4, 3)
-
-	for _, example := range testMatrix {
-		output := nn.Evaluate(example.Input)
-		assert.InDelta(t, example.Output[0], output[0], 0.2)
-	}
-}
-
-func TestLearnXORNew(t *testing.T) {
-	rand.Seed(2)
-
-	testMatrix := []neural.TrainExample{
-		{[]float64{0, 0}, []float64{0}},
-		{[]float64{1, 1}, []float64{0}},
-		{[]float64{0, 1}, []float64{1}},
-		{[]float64{1, 0}, []float64{1}},
-	}
-
-	hiddenLayer1 := neural.NewSimpleLayer(2, 2)
-	outLayer := neural.NewSimpleLayer(2, 1)
-
-	activator := neural.NewSigmoidActivator()
-	nn := neural.NewNeuralNetwork(activator, hiddenLayer1, outLayer)
-
-	nn.TrainNew(testMatrix, 1000, 4, 3)
+	neural.Train(nn, testMatrix, 1000, 4, 3, neural.NewBackwardPropagationTrainer)
 
 	for _, example := range testMatrix {
 		output := nn.Evaluate(example.Input)
