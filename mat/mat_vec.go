@@ -32,6 +32,29 @@ func SumMatrix(dst, src [][]float64) {
 	}
 }
 
+func SumVectors(dst []float64, srcs ...[]float64) {
+	cols := len(dst)
+	sum := 0.0
+	for i := 0; i < cols; i++ {
+		sum = 0
+		for _, src := range srcs {
+			sum += src[i]
+		}
+		dst[i] = sum
+	}
+}
+
+func SumMatrixes(dst [][]float64, srcs ...[][]float64) {
+	rowsCount := len(dst)
+	rows := make([][]float64, len(srcs), len(srcs))
+	for r := 0; r < rowsCount; r++ {
+		for i, src := range srcs {
+			rows[i] = src[r]
+		}
+		SumVectors(dst[r], rows...)
+	}
+}
+
 func SubVector(dst, src []float64) {
 	for i, val := range src {
 		dst[i] -= val

@@ -27,7 +27,16 @@ type network struct {
 }
 
 // NewNeuralNetwork initializes empty neural network
-func NewNeuralNetwork(activator Activator, layers ...Layer) Evaluator {
+func NewNeuralNetwork(activator Activator, neurons []int, layersFactories ...LayerFactory) Evaluator {
+	if len(neurons)-1 != len(layersFactories) {
+		panic("Neuron counts does not match layers count")
+	}
+
+	layers := make([]Layer, len(layersFactories), len(layersFactories))
+	for i, factory := range layersFactories {
+		layers[i] = factory(neurons[i], neurons[i+1])
+	}
+
 	return &network{
 		activator: activator,
 		layers:    layers,

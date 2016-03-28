@@ -37,7 +37,7 @@ func prepareMnistData(rawData *GoMNIST.Set) []neural.TrainExample {
 	return trainData
 }
 
-func main() {
+func loadTestData() ([]neural.TrainExample, []neural.TrainExample) {
 	train, test, err := GoMNIST.Load("./data")
 	if err != nil {
 		panic(err)
@@ -45,12 +45,19 @@ func main() {
 
 	trainData := prepareMnistData(train)
 	testData := prepareMnistData(test)
+	return trainData, testData
+}
 
-	hiddenLayer1 := neural.NewSimpleLayer(inputSize, 100)
-	outLayer := neural.NewSimpleLayer(100, 10)
+func main() {
+	trainData, testData := loadTestData()
 
 	activator := neural.NewSigmoidActivator()
-	nn := neural.NewNeuralNetwork(activator, hiddenLayer1, outLayer)
+	nn := neural.NewNeuralNetwork(
+		activator,
+		[]int{inputSize, 100, 10},
+		neural.NewFullyConnectedLayer,
+		neural.NewFullyConnectedLayer,
+	)
 
 	flag.Parse()
 	if *cpuprofile != "" {
@@ -75,7 +82,7 @@ func main() {
 				different++
 			}
 		}
-		success := 100 * float64(different) / float64(test.Count())
+		success := 100 * float64(different) / float64(len(testData))
 		fmt.Printf("Error: %.2f%% \n", success)
 	}
 }

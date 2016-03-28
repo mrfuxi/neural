@@ -15,7 +15,6 @@ type WeightUpdates struct {
 
 type Trainer interface {
 	Process(sample TrainExample, weightUpdates *WeightUpdates)
-	// SetUp(network Evaluator)
 }
 
 type TrainerFactory func(network Evaluator) Trainer
@@ -168,7 +167,7 @@ func NewBackwardPropagationTrainer(network Evaluator) Trainer {
 	return &trainer
 }
 
-// Process executes backward propagation algorithm
+// Process executes backward propagation algorithm to get weight updates
 func (b *backwardPropagationTrainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
 	layersCount := len(b.layers)
 

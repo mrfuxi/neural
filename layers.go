@@ -10,7 +10,9 @@ type Layer interface {
 	Shapes() (weightsRow, weightsCol, biasesCol int)
 }
 
-type simpleLayer struct {
+type LayerFactory func(inputs, neurons int) Layer
+
+type fullyConnectedLayer struct {
 	weights [][]float64
 	biases  []float64
 
@@ -18,8 +20,8 @@ type simpleLayer struct {
 	neurons int
 }
 
-func NewSimpleLayer(inputs, neurons int) Layer {
-	return &simpleLayer{
+func NewFullyConnectedLayer(inputs, neurons int) Layer {
+	return &fullyConnectedLayer{
 		weights: mat.RandomMatrix(neurons, inputs),
 		biases:  mat.RandomVector(neurons),
 		inputs:  inputs,
@@ -27,32 +29,32 @@ func NewSimpleLayer(inputs, neurons int) Layer {
 	}
 }
 
-func (s *simpleLayer) Shapes() (weightsRow, weightsCol, biasesCol int) {
-	return s.neurons, s.inputs, s.neurons
+func (l *fullyConnectedLayer) Shapes() (weightsRow, weightsCol, biasesCol int) {
+	return l.neurons, l.inputs, l.neurons
 }
 
-func (s *simpleLayer) Forward(dst, input []float64) []float64 {
+func (l *fullyConnectedLayer) Forward(dst, input []float64) []float64 {
 	if dst == nil {
-		dst = make([]float64, s.neurons, s.neurons)
+		dst = make([]float64, l.neurons, l.neurons)
 	}
 
 	tmp := 0.0
-	for r, row := range s.weights {
+	for r, row := range l.weights {
 		tmp = 0.0
 		for c, inputValue := range input {
 			tmp += row[c] * inputValue
 		}
-		dst[r] = tmp + s.biases[r]
+		dst[r] = tmp + l.biases[r]
 	}
 
 	return dst
 }
 
-func (s *simpleLayer) Backward(input []float64) []float64 {
-	outMat := make([]float64, s.inputs, s.inputs)
+func (l *fullyConnectedLayer) Backward(input []float64) []float64 {
+	outMat := make([]float64, l.inputs, l.inputs)
 
 	for c, inputValue := range input {
-		for r, rowVal := range s.weights[c] {
+		for r, rowVal := range l.weights[c] {
 			outMat[r] += rowVal * inputValue
 		}
 	}
@@ -60,14 +62,14 @@ func (s *simpleLayer) Backward(input []float64) []float64 {
 	return outMat
 }
 
-func (s *simpleLayer) SetWeights(weights [][]float64, biases []float64) {
+func (l *fullyConnectedLayer) SetWeights(weights [][]float64, biases []float64) {
 	for r, row := range weights {
-		copy(s.weights[r], row)
+		copy(l.weights[r], row)
 	}
-	copy(s.biases, biases)
+	copy(l.biases, biases)
 }
 
-func (s *simpleLayer) UpdateWeights(weights [][]float64, biases []float64) {
-	mat.SubMatrix(s.weights, weights)
-	mat.SubVector(s.biases, biases)
+func (l *fullyConnectedLayer) UpdateWeights(weights [][]float64, biases []float64) {
+	mat.SubMatrix(l.weights, weights)
+	mat.SubVector(l.biases, biases)
 }
