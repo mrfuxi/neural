@@ -9,6 +9,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+// TrainExample represents input-output pair of signals to train on or verify the training
 type TrainExample struct {
 	Input  []float64
 	Output []float64
@@ -26,7 +27,7 @@ type network struct {
 	layers    []Layer
 }
 
-// NewNeuralNetwork initializes empty neural network
+// NewNeuralNetwork initializes neural network based using activator interface, structure of neurons (counts) and layer factories
 func NewNeuralNetwork(activator Activator, neurons []int, layersFactories ...LayerFactory) Evaluator {
 	if len(neurons)-1 != len(layersFactories) {
 		panic("Neuron counts does not match layers count")
@@ -43,6 +44,7 @@ func NewNeuralNetwork(activator Activator, neurons []int, layersFactories ...Lay
 	}
 }
 
+// Evaluate calculates network answer for given input signal
 func (n *network) Evaluate(input []float64) []float64 {
 	output := input
 
@@ -54,10 +56,12 @@ func (n *network) Evaluate(input []float64) []float64 {
 	return output
 }
 
+// Layers exposes list of layers within network. Used in training only
 func (n *network) Layers() []Layer {
 	return n.layers
 }
 
+// Activate calculates activations or it's derivatives (in training) for given potentials
 func (n *network) Activate(dst, potentials []float64, forward bool) (output []float64) {
 	if dst == nil {
 		dst = make([]float64, len(potentials), len(potentials))
