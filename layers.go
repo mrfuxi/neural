@@ -2,6 +2,7 @@ package neural
 
 import "github.com/mrfuxi/neural/mat"
 
+// Layer represents a single layer in nerual network
 type Layer interface {
 	Forward(dst, input []float64) []float64
 	Backward(delta []float64) []float64
@@ -10,6 +11,7 @@ type Layer interface {
 	Shapes() (weightsRow, weightsCol, biasesCol int)
 }
 
+// LayerFactory build a Layer of certain type, used to build a network
 type LayerFactory func(inputs, neurons int) Layer
 
 type fullyConnectedLayer struct {
@@ -20,6 +22,8 @@ type fullyConnectedLayer struct {
 	neurons int
 }
 
+// NewFullyConnectedLayer creates new neural network layer with all neurons fully connected to previous layer.
+// Here it's more accruta to say it's using all input values to calculate own outputs
 func NewFullyConnectedLayer(inputs, neurons int) Layer {
 	return &fullyConnectedLayer{
 		weights: mat.RandomMatrix(neurons, inputs),
