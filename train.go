@@ -8,17 +8,22 @@ import (
 	"github.com/mrfuxi/neural/mat"
 )
 
+// WeightUpdates is per Layer representation of how to adjust weights of the network
 type WeightUpdates struct {
 	Biases  [][]float64
 	Weights [][][]float64
 }
 
+// Trainer implements calculations of weights adjustments (WeightUpdates) in the network
+// It operates on a single training example to prepare fractional result
 type Trainer interface {
 	Process(sample TrainExample, weightUpdates *WeightUpdates)
 }
 
+// TrainerFactory build Trainers. Multiple trainers will be created at the beginning of the training.
 type TrainerFactory func(network Evaluator) Trainer
 
+// NewWeightUpdates creates WeightUpdates according to structure of the network (neurons in each layer)
 func NewWeightUpdates(network Evaluator) WeightUpdates {
 	layers := network.Layers()
 	layersCount := len(layers)
@@ -41,6 +46,7 @@ func NewWeightUpdates(network Evaluator) WeightUpdates {
 	}
 }
 
+// Zero sets all weights values to 0
 func (w *WeightUpdates) Zero() {
 	mat.ZeroMatrix(w.Biases)
 	mat.ZeroVectorOfMatrixes(w.Weights)
@@ -50,6 +56,8 @@ type batchRange struct {
 	from, to int
 }
 
+// Train executes training algorithm using provided Trainers (build with TrainerFactory)
+// Training happens in randomized batches where samples are processed concurrently
 func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64, trainerFactory TrainerFactory) {
 	batchRanges := getBatchRanges(len(trainExamples), miniBatchSize)
 	ready := make(chan int, miniBatchSize)
@@ -145,6 +153,7 @@ type backwardPropagationTrainer struct {
 	potentialsPerLayer [][]float64
 }
 
+// NewBackwardPropagationTrainer builds new trainer that uses backward propagation algorithm
 func NewBackwardPropagationTrainer(network Evaluator) Trainer {
 	trainer := backwardPropagationTrainer{
 		network: network,
