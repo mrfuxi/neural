@@ -5,6 +5,7 @@ import (
 	"math/rand"
 )
 
+// CopyOfMatrix makes a deep copy of matrix (slice of slices of float64)
 func CopyOfMatrix(src [][]float64) (dst [][]float64) {
 	dst = make([][]float64, len(src))
 	for i, row := range src {
@@ -14,24 +15,28 @@ func CopyOfMatrix(src [][]float64) (dst [][]float64) {
 	return
 }
 
+// CopyOfVector makes a deep copy of vector (slice of float64)
 func CopyOfVector(src []float64) (dst []float64) {
 	dst = make([]float64, len(src))
 	copy(dst, src)
 	return
 }
 
+// SumVector adds values from src slice to dst slice
 func SumVector(dst, src []float64) {
 	for i, val := range src {
 		dst[i] += val
 	}
 }
 
+// SumMatrix adds values from src matrix to dst matrix
 func SumMatrix(dst, src [][]float64) {
 	for i, row := range src {
 		SumVector(dst[i], row)
 	}
 }
 
+// SumVectors set dst values as sum of src slices
 func SumVectors(dst []float64, srcs ...[]float64) {
 	cols := len(dst)
 	sum := 0.0
@@ -44,6 +49,7 @@ func SumVectors(dst []float64, srcs ...[]float64) {
 	}
 }
 
+// SumMatrixes set dst values as sum of src matrixes
 func SumMatrixes(dst [][]float64, srcs ...[][]float64) {
 	rowsCount := len(dst)
 	rows := make([][]float64, len(srcs), len(srcs))
@@ -55,30 +61,35 @@ func SumMatrixes(dst [][]float64, srcs ...[][]float64) {
 	}
 }
 
+// SubVector subtracts src value from dst
 func SubVector(dst, src []float64) {
 	for i, val := range src {
 		dst[i] -= val
 	}
 }
 
+// SubMatrix subtracts src value from dst
 func SubMatrix(dst, src [][]float64) {
 	for i, row := range src {
 		SubVector(dst[i], row)
 	}
 }
 
+// MulTransposeVector multiplies every values in dst by a constant factor
 func MulVectorByScalar(dst []float64, scalar float64) {
 	for i, val := range dst {
 		dst[i] = val * scalar
 	}
 }
 
+// MulMatrixByScalar multiplies every values in dst by a constant factor
 func MulMatrixByScalar(dst [][]float64, scalar float64) {
 	for _, row := range dst {
 		MulVectorByScalar(row, scalar)
 	}
 }
 
+// MulTransposeVector multiplies two matrices a' and b and places them to dst
 func MulTransposeVector(dst [][]float64, a, b []float64) [][]float64 {
 	if dst == nil {
 		dst = make([][]float64, len(a))
@@ -96,6 +107,8 @@ func MulTransposeVector(dst [][]float64, a, b []float64) [][]float64 {
 	return dst
 }
 
+// RandomVector creates vector of given size.
+// Values are distributes using normal distribution
 func RandomVector(size int) []float64 {
 	vector := make([]float64, size, size)
 	for col := range vector {
@@ -105,6 +118,8 @@ func RandomVector(size int) []float64 {
 	return vector
 }
 
+// RandomMatrix creates matrix of given size.
+// Values are distributes using normal distribution
 func RandomMatrix(rows, cols int) [][]float64 {
 	data := make([][]float64, rows)
 	for row := range data {
@@ -113,6 +128,8 @@ func RandomMatrix(rows, cols int) [][]float64 {
 	return data
 }
 
+// MulVectorElementWise multiplies a by b value by value.
+// Result is set to dst
 func MulVectorElementWise(dst, a, b []float64) []float64 {
 	if dst == nil {
 		dst = make([]float64, len(a), len(a))
@@ -123,6 +140,8 @@ func MulVectorElementWise(dst, a, b []float64) []float64 {
 	return dst
 }
 
+// SubVectorElementWise subtracts b from a (a-b).
+// Result is retuned as dst
 func SubVectorElementWise(a, b []float64) (diff []float64) {
 	diff = make([]float64, len(a), len(a))
 	for i := range diff {
@@ -131,6 +150,7 @@ func SubVectorElementWise(a, b []float64) (diff []float64) {
 	return
 }
 
+// VectorLen calculates euclidean length of the vector
 func VectorLen(a []float64) (vLen float64) {
 	for _, val := range a {
 		vLen += val * val
@@ -139,6 +159,7 @@ func VectorLen(a []float64) (vLen float64) {
 	return
 }
 
+// ArgMax calculates argmax(a)
 func ArgMax(a []float64) int {
 	maxVal := math.SmallestNonzeroFloat64
 	maxArg := -1
@@ -152,18 +173,21 @@ func ArgMax(a []float64) int {
 	return maxArg
 }
 
+// ZeroVector sets all values to 0
 func ZeroVector(a []float64) {
 	for i := range a {
 		a[i] = 0
 	}
 }
 
+// ZeroMatrix sets all values to 0
 func ZeroMatrix(a [][]float64) {
 	for _, vec := range a {
 		ZeroVector(vec)
 	}
 }
 
+// ZeroVectorOfMatrixes sets all values to 0
 func ZeroVectorOfMatrixes(a [][][]float64) {
 	for _, m := range a {
 		ZeroMatrix(m)
