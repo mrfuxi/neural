@@ -1,6 +1,11 @@
 package neural
 
-import "github.com/mrfuxi/neural/mat"
+import (
+	"encoding/gob"
+	"io"
+
+	"github.com/mrfuxi/neural/mat"
+)
 
 // Layer represents a single layer in nerual network
 type Layer interface {
@@ -9,6 +14,7 @@ type Layer interface {
 	SetWeights(weights [][]float64, biases []float64)
 	UpdateWeights(weights [][]float64, biases []float64)
 	Shapes() (weightsRow, weightsCol, biasesCol int)
+	SaverLoader
 }
 
 // LayerFactory build a Layer of certain type, used to build a network
@@ -76,4 +82,33 @@ func (l *fullyConnectedLayer) SetWeights(weights [][]float64, biases []float64) 
 func (l *fullyConnectedLayer) UpdateWeights(weights [][]float64, biases []float64) {
 	mat.SubMatrix(l.weights, weights)
 	mat.SubVector(l.biases, biases)
+}
+
+func (l *fullyConnectedLayer) Save(w io.Writer) error {
+	encoder := gob.NewEncoder(w)
+
+	err := encoder.Encode(l.biases)
+	if err != nil {
+		return err
+	}
+
+	err = encoder.Encode(l.weights)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *fullyConnectedLayer) Load(r io.Reader) error {
+	decoder := gob.NewDecoder(r)
+
+	if err := decoder.Decode(&l.biases); err != nil {
+		return err
+	}
+
+	if err := decoder.Decode(&l.weights); err != nil {
+		return err
+	}
+	return nil
 }
