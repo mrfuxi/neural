@@ -75,7 +75,7 @@ func SubMatrix(dst, src [][]float64) {
 	}
 }
 
-// MulTransposeVector multiplies every values in dst by a constant factor
+// MulVectorByScalar multiplies every values in dst by a constant factor
 func MulVectorByScalar(dst []float64, scalar float64) {
 	for i, val := range dst {
 		dst[i] = val * scalar
