@@ -15,6 +15,8 @@ import (
 
 var (
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	nnSaveFile = flag.String("save-file", "", "Save neural network to file")
+	nnLoadFile = flag.String("load-file", "", "Load neural network to file")
 	validate   = flag.Bool("validate", false, "validate against test data")
 	inputSize  = GoMNIST.Width * GoMNIST.Height
 )
@@ -60,6 +62,17 @@ func main() {
 	)
 
 	flag.Parse()
+
+	if *nnLoadFile != "" {
+		fn, err := os.Open(*nnLoadFile)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if err := neural.Load(nn, fn); err != nil {
+			log.Fatalln(err)
+		}
+	}
+
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
@@ -84,5 +97,15 @@ func main() {
 		}
 		success := 100 * float64(different) / float64(len(testData))
 		fmt.Printf("Error: %.2f%% \n", success)
+	}
+
+	if *nnSaveFile != "" {
+		fn, err := os.OpenFile(*nnSaveFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if err := neural.Save(nn, fn); err != nil {
+			log.Fatalln(err)
+		}
 	}
 }
