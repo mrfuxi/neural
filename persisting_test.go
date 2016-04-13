@@ -17,7 +17,8 @@ func TestSaveLoad(t *testing.T) {
 	}
 
 	activator := neural.NewSigmoidActivator()
-	nn := neural.NewNeuralNetwork(activator, []int{2, 2, 1}, neural.NewFullyConnectedLayer, neural.NewFullyConnectedLayer)
+	layerFactory := neural.NewFullyConnectedLayer(activator)
+	nn := neural.NewNeuralNetwork([]int{2, 2, 1}, layerFactory, layerFactory)
 	nn.Layers()[0].SetWeights([][]float64{{2.75, 2.75}, {5, 5}}, []float64{-4, -2})
 	nn.Layers()[1].SetWeights([][]float64{{-6, 6}}, []float64{-2.5})
 
@@ -31,7 +32,7 @@ func TestSaveLoad(t *testing.T) {
 	neural.Save(nn, buffer)
 
 	// New empty NN
-	newNn := neural.NewNeuralNetwork(activator, []int{2, 2, 1}, neural.NewFullyConnectedLayer, neural.NewFullyConnectedLayer)
+	newNn := neural.NewNeuralNetwork([]int{2, 2, 1}, layerFactory, layerFactory)
 	newNn.Layers()[0].SetWeights([][]float64{{0, 0}, {0, 0}}, []float64{0, 0})
 	newNn.Layers()[1].SetWeights([][]float64{{0, 0}}, []float64{0})
 

@@ -4,8 +4,8 @@ import "math"
 
 // Activator calculates neuron activation and it's derivative from given potential
 type Activator interface {
-	Activation(float64) float64
-	Derivative(float64) float64
+	Activation(dst, potentials []float64)
+	Derivative(dst, potentials []float64)
 }
 
 // NewLinearActivator creates Activator that applies linear function to given potential
@@ -19,12 +19,16 @@ type linearActication struct {
 	a float64
 }
 
-func (l *linearActication) Activation(potential float64) float64 {
-	return l.a * potential
+func (l *linearActication) Activation(dst, potentials []float64) {
+	for i, potential := range potentials {
+		dst[i] = l.a * potential
+	}
 }
 
-func (l *linearActication) Derivative(potential float64) float64 {
-	return l.a
+func (l *linearActication) Derivative(dst, potentials []float64) {
+	for i := range potentials {
+		dst[i] = l.a
+	}
 }
 
 // NewSigmoidActivator creates Activator that applies linear function to given potential
@@ -36,13 +40,17 @@ func NewSigmoidActivator() Activator {
 
 type sigmoidActivator struct{}
 
-func (s *sigmoidActivator) Activation(potential float64) float64 {
-	return 1.0 / (1.0 + math.Exp(-potential))
+func (s *sigmoidActivator) Activation(dst, potentials []float64) {
+	for i, potential := range potentials {
+		dst[i] = 1.0 / (1.0 + math.Exp(-potential))
+	}
 }
 
-func (s *sigmoidActivator) Derivative(potential float64) float64 {
-	activation := s.Activation(potential)
-	return activation * (1 - activation)
+func (s *sigmoidActivator) Derivative(dst, potentials []float64) {
+	s.Activation(dst, potentials)
+	for i, activation := range dst {
+		dst[i] = activation * (1 - activation)
+	}
 }
 
 // NewStepFunction creates Activator that returns 0 or 1 only
@@ -54,13 +62,18 @@ func NewStepFunction() Activator {
 
 type stepActicator struct{}
 
-func (s *stepActicator) Activation(potential float64) float64 {
-	if potential >= 0 {
-		return 1
+func (s *stepActicator) Activation(dst, potentials []float64) {
+	for i, potential := range potentials {
+		if potential >= 0 {
+			dst[i] = 1
+		} else {
+			dst[i] = 0
+		}
 	}
-	return 0
 }
 
-func (s *stepActicator) Derivative(potential float64) float64 {
-	return 1 // is that correct?
+func (s *stepActicator) Derivative(dst, potentials []float64) {
+	for i := range potentials {
+		dst[i] = 1
+	}
 }

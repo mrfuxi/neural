@@ -8,7 +8,8 @@ import (
 )
 
 func TestBackward(t *testing.T) {
-	layer := neural.NewFullyConnectedLayer(2, 2)
+	layerFactory := neural.NewFullyConnectedLayer(neural.NewStepFunction())
+	layer := layerFactory(2, 2)
 	layer.SetWeights(
 		[][]float64{{1, 2}, {3, 4}},
 		[]float64{-1000000},
@@ -19,7 +20,8 @@ func TestBackward(t *testing.T) {
 }
 
 func TestBackwardDims(t *testing.T) {
-	layer := neural.NewFullyConnectedLayer(2, 1)
+	layerFactory := neural.NewFullyConnectedLayer(neural.NewStepFunction())
+	layer := layerFactory(2, 1)
 	layer.SetWeights(
 		[][]float64{{0.06563701921747622, 0.15651925473279124}},
 		[]float64{-1000000},

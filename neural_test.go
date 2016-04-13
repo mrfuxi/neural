@@ -18,7 +18,7 @@ func TestFeedForwardCorrentOutputSize(t *testing.T) {
 	activator := neural.NewLinearActivator(1) // identity activator
 	expectedOutput := []float64{12.1, 23.2, 34.3}
 
-	nn := neural.NewNeuralNetwork(activator, []int{2, 3}, neural.NewFullyConnectedLayer)
+	nn := neural.NewNeuralNetwork([]int{2, 3}, neural.NewFullyConnectedLayer(activator))
 	nn.Layers()[0].SetWeights(
 		[][]float64{
 			{0.1, 2},
@@ -43,7 +43,7 @@ func TestBinaryAND(t *testing.T) {
 	}
 
 	activator := neural.NewStepFunction()
-	nn := neural.NewNeuralNetwork(activator, []int{2, 1}, neural.NewFullyConnectedLayer)
+	nn := neural.NewNeuralNetwork([]int{2, 1}, neural.NewFullyConnectedLayer(activator))
 	nn.Layers()[0].SetWeights(
 		[][]float64{{1, 1}},
 		[]float64{-2},
@@ -64,7 +64,7 @@ func TestLearnAND(t *testing.T) {
 	}
 
 	activator := neural.NewSigmoidActivator()
-	nn := neural.NewNeuralNetwork(activator, []int{2, 1}, neural.NewFullyConnectedLayer)
+	nn := neural.NewNeuralNetwork([]int{2, 1}, neural.NewFullyConnectedLayer(activator))
 
 	neural.Train(nn, testMatrix, 1000, 2, 3, neural.NewBackwardPropagationTrainer)
 
@@ -83,7 +83,7 @@ func TestLearnOR(t *testing.T) {
 	}
 
 	activator := neural.NewSigmoidActivator()
-	nn := neural.NewNeuralNetwork(activator, []int{2, 1}, neural.NewFullyConnectedLayer)
+	nn := neural.NewNeuralNetwork([]int{2, 1}, neural.NewFullyConnectedLayer(activator))
 
 	neural.Train(nn, testMatrix, 1000, 2, 3, neural.NewBackwardPropagationTrainer)
 
@@ -107,7 +107,7 @@ func TestUseXORStep(t *testing.T) {
 	}
 
 	activator := neural.NewStepFunction()
-	nn := neural.NewNeuralNetwork(activator, []int{2, 2, 1}, neural.NewFullyConnectedLayer, neural.NewFullyConnectedLayer)
+	nn := neural.NewNeuralNetwork([]int{2, 2, 1}, neural.NewFullyConnectedLayer(activator), neural.NewFullyConnectedLayer(activator))
 	nn.Layers()[0].SetWeights(weights0, biases0)
 	nn.Layers()[1].SetWeights(weights1, biases1)
 
@@ -131,7 +131,7 @@ func TestUseXORSigmoid(t *testing.T) {
 	}
 
 	activator := neural.NewSigmoidActivator()
-	nn := neural.NewNeuralNetwork(activator, []int{2, 2, 1}, neural.NewFullyConnectedLayer, neural.NewFullyConnectedLayer)
+	nn := neural.NewNeuralNetwork([]int{2, 2, 1}, neural.NewFullyConnectedLayer(activator), neural.NewFullyConnectedLayer(activator))
 	nn.Layers()[0].SetWeights(weights0, biases0)
 	nn.Layers()[1].SetWeights(weights1, biases1)
 
@@ -152,7 +152,7 @@ func TestLearnXOR(t *testing.T) {
 	}
 
 	activator := neural.NewSigmoidActivator()
-	nn := neural.NewNeuralNetwork(activator, []int{2, 2, 1}, neural.NewFullyConnectedLayer, neural.NewFullyConnectedLayer)
+	nn := neural.NewNeuralNetwork([]int{2, 2, 1}, neural.NewFullyConnectedLayer(activator), neural.NewFullyConnectedLayer(activator))
 
 	neural.Train(nn, testMatrix, 1000, 4, 3, neural.NewBackwardPropagationTrainer)
 

@@ -14,6 +14,7 @@ type Layer interface {
 	SetWeights(weights [][]float64, biases []float64)
 	UpdateWeights(weights [][]float64, biases []float64)
 	Shapes() (weightsRow, weightsCol, biasesCol int)
+	Activator() Activator
 	SaverLoader
 }
 
@@ -21,8 +22,9 @@ type Layer interface {
 type LayerFactory func(inputs, neurons int) Layer
 
 type fullyConnectedLayer struct {
-	weights [][]float64
-	biases  []float64
+	activator Activator
+	weights   [][]float64
+	biases    []float64
 
 	inputs  int
 	neurons int
@@ -30,12 +32,16 @@ type fullyConnectedLayer struct {
 
 // NewFullyConnectedLayer creates new neural network layer with all neurons fully connected to previous layer.
 // Here it's more accruta to say it's using all input values to calculate own outputs
-func NewFullyConnectedLayer(inputs, neurons int) Layer {
-	return &fullyConnectedLayer{
-		weights: mat.RandomMatrix(neurons, inputs),
-		biases:  mat.RandomVector(neurons),
-		inputs:  inputs,
-		neurons: neurons,
+// func NewFullyConnectedLayer(inputs, neurons int, activator Activator) Layer {
+func NewFullyConnectedLayer(activator Activator) LayerFactory {
+	return func(inputs, neurons int) Layer {
+		return &fullyConnectedLayer{
+			weights:   mat.RandomMatrix(neurons, inputs),
+			biases:    mat.RandomVector(neurons),
+			inputs:    inputs,
+			neurons:   neurons,
+			activator: activator,
+		}
 	}
 }
 
@@ -82,6 +88,10 @@ func (l *fullyConnectedLayer) SetWeights(weights [][]float64, biases []float64) 
 func (l *fullyConnectedLayer) UpdateWeights(weights [][]float64, biases []float64) {
 	mat.SubMatrix(l.weights, weights)
 	mat.SubVector(l.biases, biases)
+}
+
+func (l *fullyConnectedLayer) Activator() Activator {
+	return l.activator
 }
 
 func (l *fullyConnectedLayer) Save(w io.Writer) error {

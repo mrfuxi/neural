@@ -19,16 +19,14 @@ type TrainExample struct {
 type Evaluator interface {
 	Evaluate(input []float64) []float64
 	Layers() []Layer
-	Activate(dst, potentials []float64, forward bool) (output []float64)
 }
 
 type network struct {
-	activator Activator
-	layers    []Layer
+	layers []Layer
 }
 
-// NewNeuralNetwork initializes neural network based using activator interface, structure of neurons (counts) and layer factories
-func NewNeuralNetwork(activator Activator, neurons []int, layersFactories ...LayerFactory) Evaluator {
+// NewNeuralNetwork initializes neural network structure of neurons (counts) and layer factories
+func NewNeuralNetwork(neurons []int, layersFactories ...LayerFactory) Evaluator {
 	if len(neurons)-1 != len(layersFactories) {
 		panic("Neuron counts does not match layers count")
 	}
@@ -39,8 +37,7 @@ func NewNeuralNetwork(activator Activator, neurons []int, layersFactories ...Lay
 	}
 
 	return &network{
-		activator: activator,
-		layers:    layers,
+		layers: layers,
 	}
 }
 
@@ -50,7 +47,8 @@ func (n *network) Evaluate(input []float64) []float64 {
 
 	for _, layer := range n.layers {
 		potentials := layer.Forward(nil, output)
-		output = n.Activate(nil, potentials, true)
+		output = make([]float64, len(potentials), len(potentials))
+		layer.Activator().Activation(output, potentials)
 	}
 
 	return output
@@ -59,22 +57,4 @@ func (n *network) Evaluate(input []float64) []float64 {
 // Layers exposes list of layers within network. Used in training only
 func (n *network) Layers() []Layer {
 	return n.layers
-}
-
-// Activate calculates activations or it's derivatives (in training) for given potentials
-func (n *network) Activate(dst, potentials []float64, forward bool) (output []float64) {
-	if dst == nil {
-		dst = make([]float64, len(potentials), len(potentials))
-	}
-
-	if forward {
-		for i, potential := range potentials {
-			dst[i] = n.activator.Activation(potential)
-		}
-	} else {
-		for i, potential := range potentials {
-			dst[i] = n.activator.Derivative(potential)
-		}
-	}
-	return dst
 }

@@ -55,10 +55,9 @@ func main() {
 
 	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork(
-		activator,
 		[]int{inputSize, 100, 10},
-		neural.NewFullyConnectedLayer,
-		neural.NewFullyConnectedLayer,
+		neural.NewFullyConnectedLayer(activator),
+		neural.NewFullyConnectedLayer(activator),
 	)
 
 	flag.Parse()

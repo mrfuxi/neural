@@ -183,19 +183,23 @@ func (b *backwardPropagationTrainer) Process(sample TrainExample, weightUpdates 
 	copy(b.acticationPerLayer[0], sample.Input)
 	for l, layer := range b.layers {
 		layer.Forward(b.potentialsPerLayer[l], b.acticationPerLayer[l])
-		b.network.Activate(b.acticationPerLayer[l+1], b.potentialsPerLayer[l], true)
+		layer.Activator().Activation(b.acticationPerLayer[l+1], b.potentialsPerLayer[l])
 	}
 
+	spOut := make([]float64, len(sample.Output), len(sample.Output))
 	errors := mat.SubVectorElementWise(b.acticationPerLayer[len(b.acticationPerLayer)-1], sample.Output)
-	spOut := b.network.Activate(nil, b.potentialsPerLayer[len(b.potentialsPerLayer)-1], false)
+	b.network.Layers()[layersCount-1].Activator().Derivative(spOut, b.potentialsPerLayer[len(b.potentialsPerLayer)-1])
 	delta := mat.MulVectorElementWise(weightUpdates.Biases[layersCount-1], spOut, errors)
 
 	mat.MulTransposeVector(weightUpdates.Weights[layersCount-1], delta, b.acticationPerLayer[len(b.acticationPerLayer)-2])
 
 	for l := 2; l <= layersCount; l++ {
-		sp := b.network.Activate(nil, b.potentialsPerLayer[len(b.potentialsPerLayer)-l], false)
+		lNo := layersCount - l
+		potentials := b.potentialsPerLayer[len(b.potentialsPerLayer)-l]
+		sp := make([]float64, len(potentials), len(potentials))
+		b.network.Layers()[lNo].Activator().Derivative(sp, potentials)
 
-		delta = mat.MulVectorElementWise(weightUpdates.Biases[layersCount-l], b.layers[layersCount-l+1].Backward(delta), sp)
-		mat.MulTransposeVector(weightUpdates.Weights[layersCount-l], delta, b.acticationPerLayer[len(b.acticationPerLayer)-l-1])
+		delta = mat.MulVectorElementWise(weightUpdates.Biases[lNo], b.layers[lNo+1].Backward(delta), sp)
+		mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, b.acticationPerLayer[len(b.acticationPerLayer)-l-1])
 	}
 }
