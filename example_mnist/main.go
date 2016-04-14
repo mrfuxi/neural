@@ -82,7 +82,7 @@ func main() {
 	}
 
 	t0 := time.Now()
-	neural.Train(nn, trainData, 1, 10, 4, neural.NewBackwardPropagationTrainer)
+	neural.Train(nn, trainData, 1, 10, 4, neural.NewQuadraticCost(), neural.NewBackwardPropagationTrainer)
 	dt := time.Since(t0)
 
 	fmt.Println("Training complete in", dt)

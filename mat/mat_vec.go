@@ -142,10 +142,9 @@ func MulVectorElementWise(dst, a, b []float64) []float64 {
 
 // SubVectorElementWise subtracts b from a (a-b).
 // Result is retuned as dst
-func SubVectorElementWise(a, b []float64) (diff []float64) {
-	diff = make([]float64, len(a), len(a))
-	for i := range diff {
-		diff[i] = a[i] - b[i]
+func SubVectorElementWise(dst, a, b []float64) {
+	for i := range dst {
+		dst[i] = a[i] - b[i]
 	}
 	return
 }

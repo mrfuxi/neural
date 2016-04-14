@@ -21,7 +21,7 @@ type Trainer interface {
 }
 
 // TrainerFactory build Trainers. Multiple trainers will be created at the beginning of the training.
-type TrainerFactory func(network Evaluator) Trainer
+type TrainerFactory func(network Evaluator, cost Cost) Trainer
 
 // NewWeightUpdates creates WeightUpdates according to structure of the network (neurons in each layer)
 func NewWeightUpdates(network Evaluator) WeightUpdates {
@@ -58,7 +58,7 @@ type batchRange struct {
 
 // Train executes training algorithm using provided Trainers (build with TrainerFactory)
 // Training happens in randomized batches where samples are processed concurrently
-func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64, trainerFactory TrainerFactory) {
+func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64, cost Cost, trainerFactory TrainerFactory) {
 	batchRanges := getBatchRanges(len(trainExamples), miniBatchSize)
 	ready := make(chan int, miniBatchSize)
 
@@ -66,7 +66,7 @@ func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatc
 
 	trainers := make([]Trainer, miniBatchSize, miniBatchSize)
 	for i := range trainers {
-		trainers[i] = trainerFactory(network)
+		trainers[i] = trainerFactory(network, cost)
 	}
 
 	weightUpdates := make([]WeightUpdates, miniBatchSize, miniBatchSize)
@@ -148,16 +148,18 @@ func getBatchRanges(samples, miniBatchSize int) []batchRange {
 type backwardPropagationTrainer struct {
 	network Evaluator
 	layers  []Layer
+	cost    Cost
 
 	acticationPerLayer [][]float64
 	potentialsPerLayer [][]float64
 }
 
 // NewBackwardPropagationTrainer builds new trainer that uses backward propagation algorithm
-func NewBackwardPropagationTrainer(network Evaluator) Trainer {
+func NewBackwardPropagationTrainer(network Evaluator, cost Cost) Trainer {
 	trainer := backwardPropagationTrainer{
 		network: network,
 		layers:  network.Layers(),
+		cost:    cost,
 	}
 
 	layersCount := len(trainer.layers)
@@ -187,9 +189,13 @@ func (b *backwardPropagationTrainer) Process(sample TrainExample, weightUpdates 
 	}
 
 	spOut := make([]float64, len(sample.Output), len(sample.Output))
-	errors := mat.SubVectorElementWise(b.acticationPerLayer[len(b.acticationPerLayer)-1], sample.Output)
+	outError := make([]float64, len(sample.Output), len(sample.Output))
+
+	b.cost.CostDerivative(outError, b.acticationPerLayer[len(b.acticationPerLayer)-1], sample.Output)
+
+	// Propagate output error to weights of output layer
 	b.network.Layers()[layersCount-1].Activator().Derivative(spOut, b.potentialsPerLayer[len(b.potentialsPerLayer)-1])
-	delta := mat.MulVectorElementWise(weightUpdates.Biases[layersCount-1], spOut, errors)
+	delta := mat.MulVectorElementWise(weightUpdates.Biases[layersCount-1], spOut, outError)
 
 	mat.MulTransposeVector(weightUpdates.Weights[layersCount-1], delta, b.acticationPerLayer[len(b.acticationPerLayer)-2])
 
