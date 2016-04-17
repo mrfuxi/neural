@@ -50,10 +50,6 @@ func (l *fullyConnectedLayer) Shapes() (weightsRow, weightsCol, biasesCol int) {
 }
 
 func (l *fullyConnectedLayer) Forward(dst, input []float64) []float64 {
-	if dst == nil {
-		dst = make([]float64, l.neurons, l.neurons)
-	}
-
 	tmp := 0.0
 	for r, row := range l.weights {
 		tmp = 0.0

@@ -5,23 +5,6 @@ import (
 	"math/rand"
 )
 
-// CopyOfMatrix makes a deep copy of matrix (slice of slices of float64)
-func CopyOfMatrix(src [][]float64) (dst [][]float64) {
-	dst = make([][]float64, len(src))
-	for i, row := range src {
-		dst[i] = make([]float64, len(row))
-		copy(dst[i], row)
-	}
-	return
-}
-
-// CopyOfVector makes a deep copy of vector (slice of float64)
-func CopyOfVector(src []float64) (dst []float64) {
-	dst = make([]float64, len(src))
-	copy(dst, src)
-	return
-}
-
 // SumVector adds values from src slice to dst slice
 func SumVector(dst, src []float64) {
 	for i, val := range src {
@@ -33,31 +16,6 @@ func SumVector(dst, src []float64) {
 func SumMatrix(dst, src [][]float64) {
 	for i, row := range src {
 		SumVector(dst[i], row)
-	}
-}
-
-// SumVectors set dst values as sum of src slices
-func SumVectors(dst []float64, srcs ...[]float64) {
-	cols := len(dst)
-	sum := 0.0
-	for i := 0; i < cols; i++ {
-		sum = 0
-		for _, src := range srcs {
-			sum += src[i]
-		}
-		dst[i] = sum
-	}
-}
-
-// SumMatrixes set dst values as sum of src matrixes
-func SumMatrixes(dst [][]float64, srcs ...[][]float64) {
-	rowsCount := len(dst)
-	rows := make([][]float64, len(srcs), len(srcs))
-	for r := 0; r < rowsCount; r++ {
-		for i, src := range srcs {
-			rows[i] = src[r]
-		}
-		SumVectors(dst[r], rows...)
 	}
 }
 
@@ -91,13 +49,6 @@ func MulMatrixByScalar(dst [][]float64, scalar float64) {
 
 // MulTransposeVector multiplies two matrices a' and b and places them to dst
 func MulTransposeVector(dst [][]float64, a, b []float64) [][]float64 {
-	if dst == nil {
-		dst = make([][]float64, len(a))
-		for i := range a {
-			dst[i] = make([]float64, len(b))
-		}
-	}
-
 	for i, valA := range a {
 		row := dst[i]
 		for j, valB := range b {
@@ -131,9 +82,6 @@ func RandomMatrix(rows, cols int) [][]float64 {
 // MulVectorElementWise multiplies a by b value by value.
 // Result is set to dst
 func MulVectorElementWise(dst, a, b []float64) []float64 {
-	if dst == nil {
-		dst = make([]float64, len(a), len(a))
-	}
 	for i := range dst {
 		dst[i] = a[i] * b[i]
 	}
