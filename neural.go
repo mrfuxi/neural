@@ -46,8 +46,10 @@ func (n *network) Evaluate(input []float64) []float64 {
 	output := input
 
 	for _, layer := range n.layers {
-		potentials := layer.Forward(nil, output)
-		output = make([]float64, len(potentials), len(potentials))
+		n, _, _ := layer.Shapes()
+		potentials := make([]float64, n, n)
+		layer.Forward(potentials, output)
+		output = make([]float64, n, n)
 		layer.Activator().Activation(output, potentials)
 	}
 

@@ -15,7 +15,8 @@ func TestBackward(t *testing.T) {
 		[]float64{-1000000},
 	)
 
-	actualBack := layer.Backward([]float64{10, 20})
+	actualBack := make([]float64, 2)
+	layer.Backward(actualBack, []float64{10, 20})
 	assert.EqualValues(t, []float64{70, 100}, actualBack)
 }
 
@@ -27,6 +28,7 @@ func TestBackwardDims(t *testing.T) {
 		[]float64{-1000000},
 	)
 
-	actualBack := layer.Backward([]float64{0.13998155491906017})
+	actualBack := make([]float64, 2)
+	layer.Backward(actualBack, []float64{0.13998155491906017})
 	assert.EqualValues(t, []float64{0.009187972010314556, 0.021909808652268586}, actualBack)
 }

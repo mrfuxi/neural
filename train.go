@@ -154,6 +154,7 @@ type backwardPropagationTrainer struct {
 	potentialsPerLayer [][]float64
 	outError           []float64
 	sp                 [][]float64
+	backward           [][]float64
 }
 
 // NewBackwardPropagationTrainer builds new trainer that uses backward propagation algorithm
@@ -168,6 +169,7 @@ func NewBackwardPropagationTrainer(network Evaluator, cost Cost) Trainer {
 	trainer.acticationPerLayer = make([][]float64, layersCount+1, layersCount+1)
 	trainer.potentialsPerLayer = make([][]float64, layersCount, layersCount)
 	trainer.sp = make([][]float64, layersCount, layersCount)
+	trainer.backward = make([][]float64, layersCount, layersCount)
 
 	for l, layer := range trainer.layers {
 		_, weightsCol, biasesCol := layer.Shapes()
@@ -181,6 +183,7 @@ func NewBackwardPropagationTrainer(network Evaluator, cost Cost) Trainer {
 		trainer.acticationPerLayer[l+1] = make([]float64, biasesCol, biasesCol)
 		trainer.potentialsPerLayer[l] = make([]float64, biasesCol, biasesCol)
 		trainer.sp[l] = make([]float64, biasesCol, biasesCol)
+		trainer.backward[l] = make([]float64, weightsCol, weightsCol)
 	}
 	return &trainer
 }
@@ -208,7 +211,9 @@ func (b *backwardPropagationTrainer) Process(sample TrainExample, weightUpdates 
 		potentials := b.potentialsPerLayer[len(b.potentialsPerLayer)-l]
 		b.network.Layers()[lNo].Activator().Derivative(b.sp[lNo], potentials)
 
-		delta = mat.MulVectorElementWise(weightUpdates.Biases[lNo], b.layers[lNo+1].Backward(delta), b.sp[lNo])
+		b.layers[lNo+1].Backward(b.backward[lNo], delta)
+
+		delta = mat.MulVectorElementWise(weightUpdates.Biases[lNo], b.backward[lNo], b.sp[lNo])
 		mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, b.acticationPerLayer[len(b.acticationPerLayer)-l-1])
 	}
 }

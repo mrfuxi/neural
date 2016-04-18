@@ -10,7 +10,7 @@ import (
 // Layer represents a single layer in nerual network
 type Layer interface {
 	Forward(dst, input []float64) []float64
-	Backward(delta []float64) []float64
+	Backward(dst, delta []float64)
 	SetWeights(weights [][]float64, biases []float64)
 	UpdateWeights(weights [][]float64, biases []float64)
 	Shapes() (weightsRow, weightsCol, biasesCol int)
@@ -62,16 +62,16 @@ func (l *fullyConnectedLayer) Forward(dst, input []float64) []float64 {
 	return dst
 }
 
-func (l *fullyConnectedLayer) Backward(input []float64) []float64 {
-	outMat := make([]float64, l.inputs, l.inputs)
+func (l *fullyConnectedLayer) Backward(dst, input []float64) {
+	for i := range dst {
+		dst[i] = 0
+	}
 
 	for c, inputValue := range input {
 		for r, rowVal := range l.weights[c] {
-			outMat[r] += rowVal * inputValue
+			dst[r] += rowVal * inputValue
 		}
 	}
-
-	return outMat
 }
 
 func (l *fullyConnectedLayer) SetWeights(weights [][]float64, biases []float64) {
