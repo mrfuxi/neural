@@ -1,7 +1,6 @@
 package neural
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -22,6 +21,9 @@ type Trainer interface {
 
 // TrainerFactory build Trainers. Multiple trainers will be created at the beginning of the training.
 type TrainerFactory func(network Evaluator, cost Cost) Trainer
+
+// EpocheCallback gets called at the end of every epoche with information about the state of training
+type EpocheCallback func(epoche int, dt time.Duration)
 
 // NewWeightUpdates creates WeightUpdates according to structure of the network (neurons in each layer)
 func NewWeightUpdates(network Evaluator) WeightUpdates {
@@ -56,31 +58,41 @@ type batchRange struct {
 	from, to int
 }
 
+// TrainOptions define different switches used to train a network
+type TrainOptions struct {
+	Epochs         int
+	MiniBatchSize  int
+	LearningRate   float64
+	Cost           Cost
+	TrainerFactory TrainerFactory
+	EpocheCallback EpocheCallback
+}
+
 // Train executes training algorithm using provided Trainers (build with TrainerFactory)
 // Training happens in randomized batches where samples are processed concurrently
-func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatchSize int, learningRate float64, cost Cost, trainerFactory TrainerFactory) {
-	batchRanges := getBatchRanges(len(trainExamples), miniBatchSize)
-	ready := make(chan int, miniBatchSize)
+func Train(network Evaluator, trainExamples []TrainExample, options TrainOptions) {
+	batchRanges := getBatchRanges(len(trainExamples), options.MiniBatchSize)
+	ready := make(chan int, options.MiniBatchSize)
 
 	layers := network.Layers()
 
-	trainers := make([]Trainer, miniBatchSize, miniBatchSize)
+	trainers := make([]Trainer, options.MiniBatchSize, options.MiniBatchSize)
 	for i := range trainers {
-		trainers[i] = trainerFactory(network, cost)
+		trainers[i] = options.TrainerFactory(network, options.Cost)
 	}
 
-	weightUpdates := make([]WeightUpdates, miniBatchSize, miniBatchSize)
+	weightUpdates := make([]WeightUpdates, options.MiniBatchSize, options.MiniBatchSize)
 	for i := range weightUpdates {
 		weightUpdates[i] = NewWeightUpdates(network)
 	}
 
 	sumWeights := NewWeightUpdates(network)
 
-	for epoch := 1; epoch <= epochs; epoch++ {
+	for epoch := 1; epoch <= options.Epochs; epoch++ {
 		shuffleTrainExamples(trainExamples)
+		t0 := time.Now()
 
-		for b, batch := range batchRanges {
-			t0 := time.Now()
+		for _, batch := range batchRanges {
 			samples := trainExamples[batch.from:batch.to]
 			for i := range samples {
 				go func(i int) {
@@ -104,17 +116,17 @@ func Train(network Evaluator, trainExamples []TrainExample, epochs int, miniBatc
 				}
 			}
 
-			rate := learningRate / float64(batchSize)
+			rate := options.LearningRate / float64(batchSize)
 			for l, layer := range layers {
 				mat.MulVectorByScalar(sumWeights.Biases[l], rate)
 				mat.MulMatrixByScalar(sumWeights.Weights[l], rate)
 				layer.UpdateWeights(sumWeights.Weights[l], sumWeights.Biases[l])
 			}
+		}
 
-			if b%1000 == 0 {
-				dt := time.Since(t0)
-				fmt.Printf("%v/%v %v/%v    %v     \r", epoch, epochs, b, len(batchRanges), dt)
-			}
+		if options.EpocheCallback != nil {
+			dt := time.Since(t0)
+			options.EpocheCallback(epoch, dt)
 		}
 	}
 }
@@ -201,7 +213,7 @@ func (b *backwardPropagationTrainer) Process(sample TrainExample, weightUpdates 
 	b.cost.CostDerivative(b.outError, b.acticationPerLayer[len(b.acticationPerLayer)-1], sample.Output)
 
 	// Propagate output error to weights of output layer
-	b.network.Layers()[layersCount-1].Activator().Derivative(b.sp[layersCount-1], b.potentialsPerLayer[len(b.potentialsPerLayer)-1])
+	b.layers[layersCount-1].Activator().Derivative(b.sp[layersCount-1], b.potentialsPerLayer[len(b.potentialsPerLayer)-1])
 	delta := mat.MulVectorElementWise(weightUpdates.Biases[layersCount-1], b.sp[layersCount-1], b.outError)
 
 	mat.MulTransposeVector(weightUpdates.Weights[layersCount-1], delta, b.acticationPerLayer[len(b.acticationPerLayer)-2])
@@ -209,7 +221,7 @@ func (b *backwardPropagationTrainer) Process(sample TrainExample, weightUpdates 
 	for l := 2; l <= layersCount; l++ {
 		lNo := layersCount - l
 		potentials := b.potentialsPerLayer[len(b.potentialsPerLayer)-l]
-		b.network.Layers()[lNo].Activator().Derivative(b.sp[lNo], potentials)
+		b.layers[lNo].Activator().Derivative(b.sp[lNo], potentials)
 
 		b.layers[lNo+1].Backward(b.backward[lNo], delta)
 

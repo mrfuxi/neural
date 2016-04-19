@@ -50,6 +50,12 @@ func loadTestData() ([]neural.TrainExample, []neural.TrainExample) {
 	return trainData, testData
 }
 
+func epocheCallback(nn neural.Evaluator, trainData, testData []neural.TrainExample) neural.EpocheCallback {
+	return func(epoche int, dt time.Duration) {
+		fmt.Printf("%v: %v (%v per sample)\n", epoche, dt, dt/time.Duration(len(trainData)))
+	}
+}
+
 func main() {
 	trainData, testData := loadTestData()
 
@@ -81,8 +87,17 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
+	options := neural.TrainOptions{
+		Epochs:         1,
+		MiniBatchSize:  10,
+		LearningRate:   4,
+		Cost:           neural.NewQuadraticCost(),
+		TrainerFactory: neural.NewBackwardPropagationTrainer,
+		EpocheCallback: epocheCallback(nn, trainData, testData),
+	}
+
 	t0 := time.Now()
-	neural.Train(nn, trainData, 1, 10, 4, neural.NewQuadraticCost(), neural.NewBackwardPropagationTrainer)
+	neural.Train(nn, trainData, options)
 	dt := time.Since(t0)
 
 	fmt.Println("Training complete in", dt)

@@ -97,15 +97,6 @@ func SubVectorElementWise(dst, a, b []float64) {
 	return
 }
 
-// VectorLen calculates euclidean length of the vector
-func VectorLen(a []float64) (vLen float64) {
-	for _, val := range a {
-		vLen += val * val
-	}
-	vLen = math.Sqrt(vLen)
-	return
-}
-
 // ArgMax calculates argmax(a)
 func ArgMax(a []float64) int {
 	maxVal := math.SmallestNonzeroFloat64

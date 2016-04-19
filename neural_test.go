@@ -66,7 +66,14 @@ func TestLearnAND(t *testing.T) {
 	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork([]int{2, 1}, neural.NewFullyConnectedLayer(activator))
 
-	neural.Train(nn, testMatrix, 1000, 2, 3, neural.NewQuadraticCost(), neural.NewBackwardPropagationTrainer)
+	options := neural.TrainOptions{
+		Epochs:         1000,
+		MiniBatchSize:  2,
+		LearningRate:   3,
+		Cost:           neural.NewQuadraticCost(),
+		TrainerFactory: neural.NewBackwardPropagationTrainer,
+	}
+	neural.Train(nn, testMatrix, options)
 
 	for _, example := range testMatrix {
 		output := nn.Evaluate(example.Input)
@@ -85,7 +92,14 @@ func TestLearnOR(t *testing.T) {
 	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork([]int{2, 1}, neural.NewFullyConnectedLayer(activator))
 
-	neural.Train(nn, testMatrix, 1000, 2, 3, neural.NewQuadraticCost(), neural.NewBackwardPropagationTrainer)
+	options := neural.TrainOptions{
+		Epochs:         1000,
+		MiniBatchSize:  2,
+		LearningRate:   3,
+		Cost:           neural.NewQuadraticCost(),
+		TrainerFactory: neural.NewBackwardPropagationTrainer,
+	}
+	neural.Train(nn, testMatrix, options)
 
 	for _, example := range testMatrix {
 		output := nn.Evaluate(example.Input)
@@ -154,7 +168,14 @@ func TestLearnXOR(t *testing.T) {
 	activator := neural.NewSigmoidActivator()
 	nn := neural.NewNeuralNetwork([]int{2, 2, 1}, neural.NewFullyConnectedLayer(activator), neural.NewFullyConnectedLayer(activator))
 
-	neural.Train(nn, testMatrix, 1000, 4, 3, neural.NewQuadraticCost(), neural.NewBackwardPropagationTrainer)
+	options := neural.TrainOptions{
+		Epochs:         1000,
+		MiniBatchSize:  4,
+		LearningRate:   3,
+		Cost:           neural.NewQuadraticCost(),
+		TrainerFactory: neural.NewBackwardPropagationTrainer,
+	}
+	neural.Train(nn, testMatrix, options)
 
 	for _, example := range testMatrix {
 		output := nn.Evaluate(example.Input)
