@@ -229,3 +229,22 @@ func (b *backwardPropagationTrainer) Process(sample TrainExample, weightUpdates 
 		mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, b.acticationPerLayer[len(b.acticationPerLayer)-l-1])
 	}
 }
+
+// CalculateCorrectness evaluates neural network across test samples to give averate cost and error rate
+func CalculateCorrectness(nn Evaluator, cost Cost, samples []TrainExample) (avgCost float64, errors float64) {
+	var sum float64
+	var different float64
+
+	for _, sample := range samples {
+		output := nn.Evaluate(sample.Input)
+		sum += cost.Cost(output, sample.Output)
+
+		if mat.ArgMax(output) != mat.ArgMax(sample.Output) {
+			different++
+		}
+	}
+
+	avgCost = sum / float64(len(samples))
+	errors = different / float64(len(samples))
+	return
+}
