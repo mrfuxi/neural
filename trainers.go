@@ -2,19 +2,23 @@ package neural
 
 import "github.com/mrfuxi/neural/mat"
 
+type Cost interface {
+	Cost(output, desired []float64) float64
+}
+
 // Trainer implements calculations of weights adjustments (WeightUpdates) in the network
 // It operates on a single training example to prepare fractional result
 type Trainer interface {
 	Process(sample TrainExample, weightUpdates *WeightUpdates)
+	Cost
 }
 
 // TrainerFactory build Trainers. Multiple trainers will be created at the beginning of the training.
-type TrainerFactory func(network Evaluator, cost Cost) Trainer
+type TrainerFactory func(network Evaluator) Trainer
 
 type backwardPropagationTrainerBase struct {
 	network Evaluator
 	layers  []Layer
-	cost    Cost
 
 	acticationPerLayer [][]float64
 	potentialsPerLayer [][]float64
@@ -23,10 +27,9 @@ type backwardPropagationTrainerBase struct {
 	backward           [][]float64
 }
 
-func (b *backwardPropagationTrainerBase) PrepareBuffors(network Evaluator, cost Cost) {
+func (b *backwardPropagationTrainerBase) PrepareBuffors(network Evaluator) {
 	b.network = network
 	b.layers = network.Layers()
-	b.cost = cost
 
 	layersCount := len(b.layers)
 	b.acticationPerLayer = make([][]float64, layersCount+1, layersCount+1)
@@ -50,43 +53,58 @@ func (b *backwardPropagationTrainerBase) PrepareBuffors(network Evaluator, cost 
 	}
 }
 
-type backwardPropagationTrainer struct {
+type quadraticCost struct {
 	backwardPropagationTrainerBase
 }
 
-// NewBackwardPropagationTrainer builds new trainer that uses backward propagation algorithm
-func NewBackwardPropagationTrainer(network Evaluator, cost Cost) Trainer {
-	trainer := backwardPropagationTrainer{}
-	trainer.PrepareBuffors(network, cost)
+// NewQuadraticCostTrainer builds new trainer that uses backward propagation algorithm
+func NewQuadraticCostTrainer(network Evaluator) Trainer {
+	trainer := quadraticCost{}
+	trainer.PrepareBuffors(network)
 	return &trainer
 }
 
 // Process executes backward propagation algorithm to get weight updates
-func (b *backwardPropagationTrainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
-	layersCount := len(b.layers)
+func (q *quadraticCost) Process(sample TrainExample, weightUpdates *WeightUpdates) {
+	layersCount := len(q.layers)
 
-	copy(b.acticationPerLayer[0], sample.Input)
-	for l, layer := range b.layers {
-		layer.Forward(b.potentialsPerLayer[l], b.acticationPerLayer[l])
-		layer.Activator().Activation(b.acticationPerLayer[l+1], b.potentialsPerLayer[l])
+	copy(q.acticationPerLayer[0], sample.Input)
+	for l, layer := range q.layers {
+		layer.Forward(q.potentialsPerLayer[l], q.acticationPerLayer[l])
+		layer.Activator().Activation(q.acticationPerLayer[l+1], q.potentialsPerLayer[l])
 	}
 
-	b.cost.CostDerivative(b.outError, b.acticationPerLayer[len(b.acticationPerLayer)-1], sample.Output)
+	q.CostDerivative(q.outError, q.acticationPerLayer[len(q.acticationPerLayer)-1], sample.Output)
 
 	// Propagate output error to weights of output layer
-	b.layers[layersCount-1].Activator().Derivative(b.sp[layersCount-1], b.potentialsPerLayer[len(b.potentialsPerLayer)-1])
-	delta := mat.MulVectorElementWise(weightUpdates.Biases[layersCount-1], b.sp[layersCount-1], b.outError)
+	q.layers[layersCount-1].Activator().Derivative(q.sp[layersCount-1], q.potentialsPerLayer[len(q.potentialsPerLayer)-1])
+	delta := mat.MulVectorElementWise(weightUpdates.Biases[layersCount-1], q.sp[layersCount-1], q.outError)
 
-	mat.MulTransposeVector(weightUpdates.Weights[layersCount-1], delta, b.acticationPerLayer[len(b.acticationPerLayer)-2])
+	mat.MulTransposeVector(weightUpdates.Weights[layersCount-1], delta, q.acticationPerLayer[len(q.acticationPerLayer)-2])
 
 	for l := 2; l <= layersCount; l++ {
 		lNo := layersCount - l
-		potentials := b.potentialsPerLayer[len(b.potentialsPerLayer)-l]
-		b.layers[lNo].Activator().Derivative(b.sp[lNo], potentials)
+		potentials := q.potentialsPerLayer[len(q.potentialsPerLayer)-l]
+		q.layers[lNo].Activator().Derivative(q.sp[lNo], potentials)
 
-		b.layers[lNo+1].Backward(b.backward[lNo], delta)
+		q.layers[lNo+1].Backward(q.backward[lNo], delta)
 
-		delta = mat.MulVectorElementWise(weightUpdates.Biases[lNo], b.backward[lNo], b.sp[lNo])
-		mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, b.acticationPerLayer[len(b.acticationPerLayer)-l-1])
+		delta = mat.MulVectorElementWise(weightUpdates.Biases[lNo], q.backward[lNo], q.sp[lNo])
+		mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, q.acticationPerLayer[len(q.acticationPerLayer)-l-1])
 	}
+}
+
+func (q *quadraticCost) CostDerivative(dst, output, desired []float64) {
+	for i, out := range output {
+		dst[i] = out - desired[i]
+	}
+}
+
+func (q *quadraticCost) Cost(output, desired []float64) float64 {
+	sum := 0.0
+	for i, out := range output {
+		diff := desired[i] - out
+		sum += diff * diff
+	}
+	return 0.5 * sum
 }

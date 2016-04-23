@@ -54,7 +54,6 @@ type TrainOptions struct {
 	Epochs         int
 	MiniBatchSize  int
 	LearningRate   float64
-	Cost           Cost
 	TrainerFactory TrainerFactory
 	EpocheCallback EpocheCallback
 }
@@ -69,7 +68,7 @@ func Train(network Evaluator, trainExamples []TrainExample, options TrainOptions
 
 	trainers := make([]Trainer, options.MiniBatchSize, options.MiniBatchSize)
 	for i := range trainers {
-		trainers[i] = options.TrainerFactory(network, options.Cost)
+		trainers[i] = options.TrainerFactory(network)
 	}
 
 	weightUpdates := make([]WeightUpdates, options.MiniBatchSize, options.MiniBatchSize)
