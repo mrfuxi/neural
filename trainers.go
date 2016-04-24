@@ -2,15 +2,10 @@ package neural
 
 import "github.com/mrfuxi/neural/mat"
 
-type Cost interface {
-	Cost(output, desired []float64) float64
-}
-
 // Trainer implements calculations of weights adjustments (WeightUpdates) in the network
 // It operates on a single training example to prepare fractional result
 type Trainer interface {
 	Process(sample TrainExample, weightUpdates *WeightUpdates)
-	Cost
 }
 
 // TrainerFactory build Trainers. Multiple trainers will be created at the beginning of the training.
@@ -53,19 +48,20 @@ func (b *backwardPropagationTrainerBase) PrepareBuffors(network Evaluator) {
 	}
 }
 
-type quadraticCost struct {
+type quadraticCostTrainer struct {
 	backwardPropagationTrainerBase
+	QuadraticCost
 }
 
 // NewQuadraticCostTrainer builds new trainer that uses backward propagation algorithm
 func NewQuadraticCostTrainer(network Evaluator) Trainer {
-	trainer := quadraticCost{}
+	trainer := quadraticCostTrainer{}
 	trainer.PrepareBuffors(network)
 	return &trainer
 }
 
 // Process executes backward propagation algorithm to get weight updates
-func (q *quadraticCost) Process(sample TrainExample, weightUpdates *WeightUpdates) {
+func (q *quadraticCostTrainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
 	layersCount := len(q.layers)
 
 	copy(q.acticationPerLayer[0], sample.Input)
@@ -92,19 +88,4 @@ func (q *quadraticCost) Process(sample TrainExample, weightUpdates *WeightUpdate
 		delta = mat.MulVectorElementWise(weightUpdates.Biases[lNo], q.backward[lNo], q.sp[lNo])
 		mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, q.acticationPerLayer[len(q.acticationPerLayer)-l-1])
 	}
-}
-
-func (q *quadraticCost) CostDerivative(dst, output, desired []float64) {
-	for i, out := range output {
-		dst[i] = out - desired[i]
-	}
-}
-
-func (q *quadraticCost) Cost(output, desired []float64) float64 {
-	sum := 0.0
-	for i, out := range output {
-		diff := desired[i] - out
-		sum += diff * diff
-	}
-	return 0.5 * sum
 }
