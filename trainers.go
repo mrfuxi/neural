@@ -63,6 +63,7 @@ func NewQuadraticCostTrainer(network Evaluator) Trainer {
 // Process executes backward propagation algorithm to get weight updates
 func (q *quadraticCostTrainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
 	layersCount := len(q.layers)
+	lNo := layersCount - 1
 
 	copy(q.acticationPerLayer[0], sample.Input)
 	for l, layer := range q.layers {
@@ -70,16 +71,20 @@ func (q *quadraticCostTrainer) Process(sample TrainExample, weightUpdates *Weigh
 		layer.Activator().Activation(q.acticationPerLayer[l+1], q.potentialsPerLayer[l])
 	}
 
-	q.CostDerivative(q.outError, q.acticationPerLayer[len(q.acticationPerLayer)-1], sample.Output)
-
 	// Propagate output error to weights of output layer
-	q.layers[layersCount-1].Activator().Derivative(q.sp[layersCount-1], q.potentialsPerLayer[len(q.potentialsPerLayer)-1])
-	delta := mat.MulVectorElementWise(weightUpdates.Biases[layersCount-1], q.sp[layersCount-1], q.outError)
+	q.CostDerivative(
+		weightUpdates.Biases[lNo],
+		q.acticationPerLayer[len(q.acticationPerLayer)-1],
+		sample.Output,
+		q.potentialsPerLayer[len(q.potentialsPerLayer)-1],
+		q.layers[lNo].Activator(),
+	)
 
-	mat.MulTransposeVector(weightUpdates.Weights[layersCount-1], delta, q.acticationPerLayer[len(q.acticationPerLayer)-2])
+	delta := weightUpdates.Biases[lNo]
+	mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, q.acticationPerLayer[len(q.acticationPerLayer)-2])
 
 	for l := 2; l <= layersCount; l++ {
-		lNo := layersCount - l
+		lNo = layersCount - l
 		potentials := q.potentialsPerLayer[len(q.potentialsPerLayer)-l]
 		q.layers[lNo].Activator().Derivative(q.sp[lNo], potentials)
 

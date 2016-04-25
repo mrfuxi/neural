@@ -7,6 +7,11 @@ type Cost interface {
 	Cost(output, desired []float64) float64
 }
 
+//CostDerivative method should calculate derivative of cost of single example
+type CostDerivative interface {
+	CostDerivative(dst, output, desired, potentials []float64, activator Activator)
+}
+
 type QuadraticCost struct{}
 
 func (q *QuadraticCost) Cost(output, desired []float64) float64 {
@@ -18,9 +23,11 @@ func (q *QuadraticCost) Cost(output, desired []float64) float64 {
 	return 0.5 * sum
 }
 
-func (q *QuadraticCost) CostDerivative(dst, output, desired []float64) {
+func (q *QuadraticCost) CostDerivative(dst, output, desired, potentials []float64, activator Activator) {
+	activator.Derivative(dst, potentials)
+
 	for i, out := range output {
-		dst[i] = out - desired[i]
+		dst[i] = (out - desired[i]) * dst[i]
 	}
 }
 
