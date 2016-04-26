@@ -70,7 +70,8 @@ func TestLearnAND(t *testing.T) {
 		Epochs:         1000,
 		MiniBatchSize:  2,
 		LearningRate:   3,
-		TrainerFactory: neural.NewQuadraticCostTrainer,
+		TrainerFactory: neural.NewBackpropagationTrainer,
+		Cost:           neural.NewQuadraticCost(),
 	}
 	neural.Train(nn, testMatrix, options)
 
@@ -95,7 +96,8 @@ func TestLearnOR(t *testing.T) {
 		Epochs:         1000,
 		MiniBatchSize:  2,
 		LearningRate:   3,
-		TrainerFactory: neural.NewQuadraticCostTrainer,
+		TrainerFactory: neural.NewBackpropagationTrainer,
+		Cost:           neural.NewQuadraticCost(),
 	}
 	neural.Train(nn, testMatrix, options)
 
@@ -170,7 +172,8 @@ func TestLearnXOR(t *testing.T) {
 		Epochs:         1000,
 		MiniBatchSize:  4,
 		LearningRate:   3,
-		TrainerFactory: neural.NewQuadraticCostTrainer,
+		TrainerFactory: neural.NewBackpropagationTrainer,
+		Cost:           neural.NewQuadraticCost(),
 	}
 	neural.Train(nn, testMatrix, options)
 

@@ -86,12 +86,14 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
+	cost := neural.NewQuadraticCost()
 	options := neural.TrainOptions{
 		Epochs:         10,
 		MiniBatchSize:  10,
 		LearningRate:   4,
-		TrainerFactory: neural.NewQuadraticCostTrainer,
-		EpocheCallback: epocheCallback(nn, neural.NewQuadraticCost(), trainData, testData),
+		TrainerFactory: neural.NewBackpropagationTrainer,
+		EpocheCallback: epocheCallback(nn, cost, trainData, testData),
+		Cost:           cost,
 	}
 
 	t0 := time.Now()

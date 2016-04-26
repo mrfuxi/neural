@@ -56,6 +56,7 @@ type TrainOptions struct {
 	LearningRate   float64
 	TrainerFactory TrainerFactory
 	EpocheCallback EpocheCallback
+	Cost           CostDerivative
 }
 
 // Train executes training algorithm using provided Trainers (build with TrainerFactory)
@@ -68,7 +69,7 @@ func Train(network Evaluator, trainExamples []TrainExample, options TrainOptions
 
 	trainers := make([]Trainer, options.MiniBatchSize, options.MiniBatchSize)
 	for i := range trainers {
-		trainers[i] = options.TrainerFactory(network)
+		trainers[i] = options.TrainerFactory(network, options.Cost)
 	}
 
 	weightUpdates := make([]WeightUpdates, options.MiniBatchSize, options.MiniBatchSize)

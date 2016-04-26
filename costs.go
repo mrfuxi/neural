@@ -12,9 +12,14 @@ type CostDerivative interface {
 	CostDerivative(dst, output, desired, potentials []float64, activator Activator)
 }
 
-type QuadraticCost struct{}
+type CostCostDerrivative interface {
+	Cost
+	CostDerivative
+}
 
-func (q *QuadraticCost) Cost(output, desired []float64) float64 {
+type quadraticCost struct{}
+
+func (q *quadraticCost) Cost(output, desired []float64) float64 {
 	sum := 0.0
 	for i, out := range output {
 		diff := desired[i] - out
@@ -23,7 +28,7 @@ func (q *QuadraticCost) Cost(output, desired []float64) float64 {
 	return 0.5 * sum
 }
 
-func (q *QuadraticCost) CostDerivative(dst, output, desired, potentials []float64, activator Activator) {
+func (q *quadraticCost) CostDerivative(dst, output, desired, potentials []float64, activator Activator) {
 	activator.Derivative(dst, potentials)
 
 	for i, out := range output {
@@ -31,6 +36,6 @@ func (q *QuadraticCost) CostDerivative(dst, output, desired, potentials []float6
 	}
 }
 
-func NewQuadraticCost() *QuadraticCost {
-	return &QuadraticCost{}
+func NewQuadraticCost() CostCostDerrivative {
+	return &quadraticCost{}
 }

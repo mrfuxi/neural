@@ -9,11 +9,12 @@ type Trainer interface {
 }
 
 // TrainerFactory build Trainers. Multiple trainers will be created at the beginning of the training.
-type TrainerFactory func(network Evaluator) Trainer
+type TrainerFactory func(network Evaluator, cost CostDerivative) Trainer
 
-type backwardPropagationTrainerBase struct {
+type trainer struct {
 	network Evaluator
 	layers  []Layer
+	cost    CostDerivative
 
 	acticationPerLayer [][]float64
 	potentialsPerLayer [][]float64
@@ -22,75 +23,69 @@ type backwardPropagationTrainerBase struct {
 	backward           [][]float64
 }
 
-func (b *backwardPropagationTrainerBase) PrepareBuffors(network Evaluator) {
-	b.network = network
-	b.layers = network.Layers()
+// NewBackpropagationTrainer builds new trainer that uses backward propagation algorithm
+func NewBackpropagationTrainer(network Evaluator, cost CostDerivative) Trainer {
+	t := trainer{
+		network: network,
+		layers:  network.Layers(),
+		cost:    cost,
+	}
 
-	layersCount := len(b.layers)
-	b.acticationPerLayer = make([][]float64, layersCount+1, layersCount+1)
-	b.potentialsPerLayer = make([][]float64, layersCount, layersCount)
-	b.sp = make([][]float64, layersCount, layersCount)
-	b.backward = make([][]float64, layersCount, layersCount)
+	layersCount := len(t.layers)
+	t.acticationPerLayer = make([][]float64, layersCount+1, layersCount+1)
+	t.potentialsPerLayer = make([][]float64, layersCount, layersCount)
+	t.sp = make([][]float64, layersCount, layersCount)
+	t.backward = make([][]float64, layersCount, layersCount)
 
-	for l, layer := range b.layers {
+	for l, layer := range t.layers {
 		_, weightsCol, biasesCol := layer.Shapes()
 		if l == 0 {
-			b.acticationPerLayer[0] = make([]float64, weightsCol, weightsCol)
+			t.acticationPerLayer[0] = make([]float64, weightsCol, weightsCol)
 		}
-		if l == len(b.layers)-1 {
-			b.outError = make([]float64, biasesCol, biasesCol)
+		if l == len(t.layers)-1 {
+			t.outError = make([]float64, biasesCol, biasesCol)
 		}
 
-		b.acticationPerLayer[l+1] = make([]float64, biasesCol, biasesCol)
-		b.potentialsPerLayer[l] = make([]float64, biasesCol, biasesCol)
-		b.sp[l] = make([]float64, biasesCol, biasesCol)
-		b.backward[l] = make([]float64, weightsCol, weightsCol)
+		t.acticationPerLayer[l+1] = make([]float64, biasesCol, biasesCol)
+		t.potentialsPerLayer[l] = make([]float64, biasesCol, biasesCol)
+		t.sp[l] = make([]float64, biasesCol, biasesCol)
+		t.backward[l] = make([]float64, weightsCol, weightsCol)
 	}
-}
 
-type quadraticCostTrainer struct {
-	backwardPropagationTrainerBase
-	QuadraticCost
-}
-
-// NewQuadraticCostTrainer builds new trainer that uses backward propagation algorithm
-func NewQuadraticCostTrainer(network Evaluator) Trainer {
-	trainer := quadraticCostTrainer{}
-	trainer.PrepareBuffors(network)
-	return &trainer
+	return &t
 }
 
 // Process executes backward propagation algorithm to get weight updates
-func (q *quadraticCostTrainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
-	layersCount := len(q.layers)
+func (t *trainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
+	layersCount := len(t.layers)
 	lNo := layersCount - 1
 
-	copy(q.acticationPerLayer[0], sample.Input)
-	for l, layer := range q.layers {
-		layer.Forward(q.potentialsPerLayer[l], q.acticationPerLayer[l])
-		layer.Activator().Activation(q.acticationPerLayer[l+1], q.potentialsPerLayer[l])
+	copy(t.acticationPerLayer[0], sample.Input)
+	for l, layer := range t.layers {
+		layer.Forward(t.potentialsPerLayer[l], t.acticationPerLayer[l])
+		layer.Activator().Activation(t.acticationPerLayer[l+1], t.potentialsPerLayer[l])
 	}
 
 	// Propagate output error to weights of output layer
-	q.CostDerivative(
+	t.cost.CostDerivative(
 		weightUpdates.Biases[lNo],
-		q.acticationPerLayer[len(q.acticationPerLayer)-1],
+		t.acticationPerLayer[len(t.acticationPerLayer)-1],
 		sample.Output,
-		q.potentialsPerLayer[len(q.potentialsPerLayer)-1],
-		q.layers[lNo].Activator(),
+		t.potentialsPerLayer[len(t.potentialsPerLayer)-1],
+		t.layers[lNo].Activator(),
 	)
 
 	delta := weightUpdates.Biases[lNo]
-	mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, q.acticationPerLayer[len(q.acticationPerLayer)-2])
+	mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, t.acticationPerLayer[len(t.acticationPerLayer)-2])
 
 	for l := 2; l <= layersCount; l++ {
 		lNo = layersCount - l
-		potentials := q.potentialsPerLayer[len(q.potentialsPerLayer)-l]
-		q.layers[lNo].Activator().Derivative(q.sp[lNo], potentials)
+		potentials := t.potentialsPerLayer[len(t.potentialsPerLayer)-l]
+		t.layers[lNo].Activator().Derivative(t.sp[lNo], potentials)
 
-		q.layers[lNo+1].Backward(q.backward[lNo], delta)
+		t.layers[lNo+1].Backward(t.backward[lNo], delta)
 
-		delta = mat.MulVectorElementWise(weightUpdates.Biases[lNo], q.backward[lNo], q.sp[lNo])
-		mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, q.acticationPerLayer[len(q.acticationPerLayer)-l-1])
+		delta = mat.MulVectorElementWise(weightUpdates.Biases[lNo], t.backward[lNo], t.sp[lNo])
+		mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, t.acticationPerLayer[len(t.acticationPerLayer)-l-1])
 	}
 }
