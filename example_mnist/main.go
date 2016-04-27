@@ -86,7 +86,7 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	cost := neural.NewQuadraticCost()
+	cost := neural.NewCrossEntropyCost()
 	options := neural.TrainOptions{
 		Epochs:         10,
 		MiniBatchSize:  10,

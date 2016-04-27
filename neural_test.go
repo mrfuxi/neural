@@ -169,11 +169,39 @@ func TestLearnXOR(t *testing.T) {
 	nn := neural.NewNeuralNetwork([]int{2, 2, 1}, neural.NewFullyConnectedLayer(activator), neural.NewFullyConnectedLayer(activator))
 
 	options := neural.TrainOptions{
-		Epochs:         1000,
+		Epochs:         860,
 		MiniBatchSize:  4,
 		LearningRate:   3,
 		TrainerFactory: neural.NewBackpropagationTrainer,
 		Cost:           neural.NewQuadraticCost(),
+	}
+	neural.Train(nn, testMatrix, options)
+
+	for _, example := range testMatrix {
+		output := nn.Evaluate(example.Input)
+		assert.InDelta(t, example.Output[0], output[0], 0.2)
+	}
+}
+
+func TestLearnXORCrossEntropy(t *testing.T) {
+	rand.Seed(2)
+
+	testMatrix := []neural.TrainExample{
+		{[]float64{0, 0}, []float64{0}},
+		{[]float64{1, 1}, []float64{0}},
+		{[]float64{0, 1}, []float64{1}},
+		{[]float64{1, 0}, []float64{1}},
+	}
+
+	activator := neural.NewSigmoidActivator()
+	nn := neural.NewNeuralNetwork([]int{2, 2, 1}, neural.NewFullyConnectedLayer(activator), neural.NewFullyConnectedLayer(activator))
+
+	options := neural.TrainOptions{
+		Epochs:         210,
+		MiniBatchSize:  4,
+		LearningRate:   3,
+		TrainerFactory: neural.NewBackpropagationTrainer,
+		Cost:           neural.NewCrossEntropyCost(),
 	}
 	neural.Train(nn, testMatrix, options)
 

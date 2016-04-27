@@ -66,7 +66,6 @@ func (t *trainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
 		layer.Activator().Activation(t.acticationPerLayer[l+1], t.potentialsPerLayer[l])
 	}
 
-	// Propagate output error to weights of output layer
 	t.cost.CostDerivative(
 		weightUpdates.Biases[lNo],
 		t.acticationPerLayer[len(t.acticationPerLayer)-1],
@@ -75,6 +74,7 @@ func (t *trainer) Process(sample TrainExample, weightUpdates *WeightUpdates) {
 		t.layers[lNo].Activator(),
 	)
 
+	// Propagate output error to weights of output layer
 	delta := weightUpdates.Biases[lNo]
 	mat.MulTransposeVector(weightUpdates.Weights[lNo], delta, t.acticationPerLayer[len(t.acticationPerLayer)-2])
 

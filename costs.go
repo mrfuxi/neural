@@ -1,5 +1,7 @@
 package neural
 
+import "math"
+
 // Cost interface represents way of calculating neural network cost
 // Cost method should calculate cost of single example.
 // It does not account for normalization. Normalization factor of 1/n should be applied further on
@@ -38,4 +40,25 @@ func (q *quadraticCost) CostDerivative(dst, output, desired, potentials []float6
 
 func NewQuadraticCost() CostCostDerrivative {
 	return &quadraticCost{}
+}
+
+type corssEntropyCost struct{}
+
+func (c *corssEntropyCost) Cost(output, desired []float64) float64 {
+	sum := 0.0
+	for i, out := range output {
+		y := desired[i]
+		sum -= y*math.Log(out) + (1-y)*math.Log(1-out)
+	}
+	return 0.5 * sum
+}
+
+func (c *corssEntropyCost) CostDerivative(dst, output, desired, potentials []float64, activator Activator) {
+	for i, out := range output {
+		dst[i] = out - desired[i]
+	}
+}
+
+func NewCrossEntropyCost() CostCostDerrivative {
+	return &corssEntropyCost{}
 }
