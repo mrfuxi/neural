@@ -77,3 +77,26 @@ func (s *stepActicator) Derivative(dst, potentials []float64) {
 		dst[i] = 1
 	}
 }
+
+func NewSoftmaxFunction() Activator {
+	return &softmaxActicator{}
+}
+
+type softmaxActicator struct{}
+
+func (s *softmaxActicator) Activation(dst, potentials []float64) {
+	var sum float64
+
+	for i, potential := range potentials {
+		dst[i] = math.Exp(potential)
+		sum += dst[i]
+	}
+
+	for i, dstVal := range dst {
+		dst[i] = dstVal / sum
+	}
+}
+
+func (s *softmaxActicator) Derivative(dst, potentials []float64) {
+	panic("Derivative of Softmax should not be used in ANN")
+}

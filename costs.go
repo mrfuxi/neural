@@ -1,6 +1,10 @@
 package neural
 
-import "math"
+import (
+	"math"
+
+	"github.com/mrfuxi/neural/mat"
+)
 
 // Cost interface represents way of calculating neural network cost
 // Cost method should calculate cost of single example.
@@ -61,4 +65,21 @@ func (c *corssEntropyCost) CostDerivative(dst, output, desired, potentials []flo
 
 func NewCrossEntropyCost() CostCostDerrivative {
 	return &corssEntropyCost{}
+}
+
+type logLikelihoodCost struct{}
+
+func (c *logLikelihoodCost) Cost(output, desired []float64) float64 {
+	arg := mat.ArgMax(desired)
+	return -math.Log(output[arg])
+}
+
+func (c *logLikelihoodCost) CostDerivative(dst, output, desired, potentials []float64, activator Activator) {
+	for i, out := range output {
+		dst[i] = out - desired[i]
+	}
+}
+
+func NewLogLikelihoodCost() CostCostDerrivative {
+	return &logLikelihoodCost{}
 }

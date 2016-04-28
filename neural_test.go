@@ -210,3 +210,36 @@ func TestLearnXORCrossEntropy(t *testing.T) {
 		assert.InDelta(t, example.Output[0], output[0], 0.2)
 	}
 }
+
+func TestLearnXORSoftMaxLogLikelyhood(t *testing.T) {
+	rand.Seed(2)
+
+	testMatrix := []neural.TrainExample{
+		{[]float64{0, 0}, []float64{0, 1}},
+		{[]float64{1, 1}, []float64{0, 1}},
+		{[]float64{0, 1}, []float64{1, 0}},
+		{[]float64{1, 0}, []float64{1, 0}},
+	}
+
+	sigmoidActivator := neural.NewSigmoidActivator()
+	softMaxActivator := neural.NewSigmoidActivator()
+	nn := neural.NewNeuralNetwork(
+		[]int{2, 2, 2},
+		neural.NewFullyConnectedLayer(sigmoidActivator),
+		neural.NewFullyConnectedLayer(softMaxActivator),
+	)
+
+	options := neural.TrainOptions{
+		Epochs:         160,
+		MiniBatchSize:  4,
+		LearningRate:   3,
+		TrainerFactory: neural.NewBackpropagationTrainer,
+		Cost:           neural.NewLogLikelihoodCost(),
+	}
+	neural.Train(nn, testMatrix, options)
+
+	for _, example := range testMatrix {
+		output := nn.Evaluate(example.Input)
+		assert.InDeltaSlice(t, example.Output, output, 0.2)
+	}
+}
