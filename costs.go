@@ -13,11 +13,13 @@ type Cost interface {
 	Cost(output, desired []float64) float64
 }
 
-//CostDerivative method should calculate derivative of cost of single example
+// CostDerivative method should calculate derivative of cost of single example
 type CostDerivative interface {
 	CostDerivative(dst, output, desired, potentials []float64, activator Activator)
 }
 
+// CostCostDerrivative represents both way of calculating neural network cost
+// as well as it's derivative (delta)
 type CostCostDerrivative interface {
 	Cost
 	CostDerivative
@@ -42,6 +44,7 @@ func (q *quadraticCost) CostDerivative(dst, output, desired, potentials []float6
 	}
 }
 
+// NewQuadraticCost creates quadratic cost function also known as mean squared error or just MSE
 func NewQuadraticCost() CostCostDerrivative {
 	return &quadraticCost{}
 }
@@ -63,6 +66,11 @@ func (c *corssEntropyCost) CostDerivative(dst, output, desired, potentials []flo
 	}
 }
 
+// NewCrossEntropyCost creates cross entropy cost function.
+// Comparing with quadratic cost it's derivative is not affected by activation function derivative.
+// That means learning process is faster and avoids saturation of sigmoid function.
+// It should be used together with sigmoid activation function in the last layer.
+// In case of using it with different activator CostDerivative is no longer correct.
 func NewCrossEntropyCost() CostCostDerrivative {
 	return &corssEntropyCost{}
 }
@@ -80,6 +88,9 @@ func (c *logLikelihoodCost) CostDerivative(dst, output, desired, potentials []fl
 	}
 }
 
+// NewLogLikelihoodCost creates cross entropy cost function.
+// Similar to cross entropy function it's faster than quadratic cost function,
+// however should be used with Softmax activator in last layer for math to be correct.
 func NewLogLikelihoodCost() CostCostDerrivative {
 	return &logLikelihoodCost{}
 }
