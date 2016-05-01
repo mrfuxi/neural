@@ -32,8 +32,10 @@ func (l *linearActication) Derivative(dst, potentials []float64) {
 }
 
 // NewSigmoidActivator creates Activator that applies linear function to given potential
-// Actication: a*potential + 0
-// Derivative: a
+//
+// Actication: 1/(1+exp(-potential))
+//
+// Derivative: f(potential) * (1- f(potential))
 func NewSigmoidActivator() Activator {
 	return &sigmoidActivator{}
 }
@@ -53,9 +55,11 @@ func (s *sigmoidActivator) Derivative(dst, potentials []float64) {
 	}
 }
 
-// NewStepFunction creates Activator that returns 0 or 1 only
+// NewStepFunction creates Activator that returns 0 or 1 only.
+//
 // Actication: 1 if potential >= 0 else 0
-// Derivative: 0 (is that correct?)
+//
+// Derivative: 1 (is that correct?)
 func NewStepFunction() Activator {
 	return &stepActicator{}
 }
@@ -78,10 +82,10 @@ func (s *stepActicator) Derivative(dst, potentials []float64) {
 	}
 }
 
-// NewSoftmaxFunction creates Activator that scales responses in layer from 0 to 1
-// Sum of responses in layer are equal 1, so it can be interpret as probability
-// This activator should be used in last layer with Log Likelihood
-// Derivative is not implemented as it should not be needed. If used it will panic
+// NewSoftmaxFunction creates Activator that scales responses in layer from 0 to 1.
+// Sum of responses in layer are equal 1, so it can be interpret as probability.
+// This activator should be used in last layer with Log Likelihood.
+// Derivative is not implemented as it should not be needed. If used it will panic.
 func NewSoftmaxFunction() Activator {
 	return &softmaxActicator{}
 }
