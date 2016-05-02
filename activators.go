@@ -9,7 +9,9 @@ type Activator interface {
 }
 
 // NewLinearActivator creates Activator that applies linear function to given potential
+//
 // Actication: a*potential + 0
+//
 // Derivative: a
 func NewLinearActivator(a float64) Activator {
 	return &linearActication{a}
@@ -83,6 +85,7 @@ func (s *stepActicator) Derivative(dst, potentials []float64) {
 }
 
 // NewSoftmaxFunction creates Activator that scales responses in layer from 0 to 1.
+//
 // Sum of responses in layer are equal 1, so it can be interpret as probability.
 // This activator should be used in last layer with Log Likelihood.
 // Derivative is not implemented as it should not be needed. If used it will panic.

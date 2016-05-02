@@ -55,3 +55,35 @@ func TestSigmoidActivator(t *testing.T) {
 		assert.InDeltaSlice(t, example.derivative, derivative, 0.00001)
 	}
 }
+
+func TestSoftmaxActivator(t *testing.T) {
+	testMatrix := []struct {
+		in, activation []float64
+	}{
+		{[]float64{1, 1, 1}, []float64{0.3333, 0.3333, 0.3333}},
+		{[]float64{0, 1, 0}, []float64{0.2119, 0.5761, 0.2119}},
+		{[]float64{1, 2, 3}, []float64{0.0900, 0.2447, 0.6652}},
+		{[]float64{0, 0, 0}, []float64{0.3333, 0.3333, 0.3333}},
+		{[]float64{-1, 0, 1}, []float64{0.0900, 0.2447, 0.6652}},
+		{[]float64{1, 1, 10}, []float64{0.0001, 0.0001, 0.9998}},
+	}
+
+	activator := neural.NewSoftmaxFunction()
+	for _, example := range testMatrix {
+		activation := make([]float64, len(example.in), len(example.in))
+		activator.Activation(activation, example.in)
+		assert.InDeltaSlice(t, example.activation, activation, 0.0001)
+
+		// Sum up to 1
+		sum := 0.0
+		for _, val := range activation {
+			sum += val
+		}
+		assert.InDelta(t, 1.0, sum, 0.000001)
+
+		// Derivative not panics
+		assert.Panics(t, func() {
+			activator.Derivative(activation, example.in)
+		})
+	}
+}
