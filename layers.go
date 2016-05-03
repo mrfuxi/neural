@@ -12,7 +12,7 @@ type Layer interface {
 	Forward(dst, input []float64)
 	Backward(dst, delta []float64)
 	SetWeights(weights [][]float64, biases []float64)
-	UpdateWeights(weights [][]float64, biases []float64)
+	UpdateWeights(weights [][]float64, biases []float64, regularization float64)
 	Shapes() (weightsRow, weightsCol, biasesCol int)
 	Activator() Activator
 	SaverLoader
@@ -79,7 +79,10 @@ func (l *fullyConnectedLayer) SetWeights(weights [][]float64, biases []float64) 
 	copy(l.biases, biases)
 }
 
-func (l *fullyConnectedLayer) UpdateWeights(weights [][]float64, biases []float64) {
+func (l *fullyConnectedLayer) UpdateWeights(weights [][]float64, biases []float64, regularization float64) {
+	if regularization != 1 {
+		mat.MulMatrixByScalar(l.weights, regularization)
+	}
 	mat.SubMatrix(l.weights, weights)
 	mat.SubVector(l.biases, biases)
 }

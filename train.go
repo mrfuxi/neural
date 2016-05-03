@@ -54,6 +54,7 @@ type TrainOptions struct {
 	Epochs         int
 	MiniBatchSize  int
 	LearningRate   float64
+	Regularization float64 // L2 labda value
 	TrainerFactory TrainerFactory
 	EpocheCallback EpocheCallback
 	Cost           CostDerivative
@@ -78,6 +79,8 @@ func Train(network Evaluator, trainExamples []TrainExample, options TrainOptions
 	}
 
 	sumWeights := NewWeightUpdates(network)
+
+	weightsDecay := 1 - (options.LearningRate*options.Regularization)/float64(len(trainExamples))
 
 	for epoch := 1; epoch <= options.Epochs; epoch++ {
 		shuffleTrainExamples(trainExamples)
@@ -111,7 +114,7 @@ func Train(network Evaluator, trainExamples []TrainExample, options TrainOptions
 			for l, layer := range layers {
 				mat.MulVectorByScalar(sumWeights.Biases[l], rate)
 				mat.MulMatrixByScalar(sumWeights.Weights[l], rate)
-				layer.UpdateWeights(sumWeights.Weights[l], sumWeights.Biases[l])
+				layer.UpdateWeights(sumWeights.Weights[l], sumWeights.Biases[l], weightsDecay)
 			}
 		}
 
