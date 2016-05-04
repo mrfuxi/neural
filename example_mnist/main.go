@@ -30,9 +30,11 @@ func prepareMnistData(rawData *GoMNIST.Set) []neural.TrainExample {
 		}
 
 		for j := range trainData[i].Output {
-			trainData[i].Output[j] = 0.1
+			trainData[i].Output[j] = 0
+			// trainData[i].Output[j] = 0.1
 		}
-		trainData[i].Output[label] = 0.9
+		trainData[i].Output[label] = 1
+		// trainData[i].Output[label] = 0.9
 	}
 	return trainData
 }
@@ -59,10 +61,11 @@ func main() {
 	trainData, testData := loadTestData()
 
 	activator := neural.NewSigmoidActivator()
+	outActivator := neural.NewSoftmaxFunction()
 	nn := neural.NewNeuralNetwork(
 		[]int{inputSize, 100, 10},
 		neural.NewFullyConnectedLayer(activator),
-		neural.NewFullyConnectedLayer(activator),
+		neural.NewFullyConnectedLayer(outActivator),
 	)
 
 	flag.Parse()
@@ -86,11 +89,12 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	cost := neural.NewCrossEntropyCost()
+	cost := neural.NewLogLikelihoodCost()
 	options := neural.TrainOptions{
-		Epochs:         10,
+		Epochs:         40,
 		MiniBatchSize:  10,
-		LearningRate:   4,
+		LearningRate:   0.1,
+		Regularization: 5,
 		TrainerFactory: neural.NewBackpropagationTrainer,
 		EpocheCallback: epocheCallback(nn, cost, trainData, testData),
 		Cost:           cost,
