@@ -26,15 +26,13 @@ func prepareMnistData(rawData *GoMNIST.Set) []neural.TrainExample {
 		trainData[i].Input = make([]float64, inputSize, inputSize)
 		trainData[i].Output = make([]float64, 10, 10)
 		for j, pix := range image {
-			trainData[i].Input[j] = (float64(pix)/255)*0.9 + 0.1
+			trainData[i].Input[j] = (float64(pix) / 255)
 		}
 
 		for j := range trainData[i].Output {
 			trainData[i].Output[j] = 0
-			// trainData[i].Output[j] = 0.1
 		}
 		trainData[i].Output[label] = 1
-		// trainData[i].Output[label] = 0.9
 	}
 	return trainData
 }
@@ -93,7 +91,7 @@ func main() {
 	options := neural.TrainOptions{
 		Epochs:         40,
 		MiniBatchSize:  10,
-		LearningRate:   0.1,
+		LearningRate:   0.4,
 		Regularization: 5,
 		TrainerFactory: neural.NewBackpropagationTrainer,
 		EpocheCallback: epocheCallback(nn, cost, trainData, testData),
