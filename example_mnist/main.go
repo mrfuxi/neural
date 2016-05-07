@@ -37,26 +37,32 @@ func prepareMnistData(rawData *GoMNIST.Set) []neural.TrainExample {
 	return trainData
 }
 
-func loadTestData() ([]neural.TrainExample, []neural.TrainExample) {
+func loadTestData() ([]neural.TrainExample, []neural.TrainExample, []neural.TrainExample) {
 	train, test, err := GoMNIST.Load("./data")
 	if err != nil {
 		panic(err)
 	}
 
-	trainData := prepareMnistData(train)
+	tmp := prepareMnistData(train)
+	trainData := tmp[:40000]
+	validationData := tmp[40000:]
 	testData := prepareMnistData(test)
-	return trainData, testData
+	return trainData, validationData, testData
 }
 
-func epocheCallback(nn neural.Evaluator, cost neural.Cost, trainData, testData []neural.TrainExample) neural.EpocheCallback {
+func epocheCallback(nn neural.Evaluator, cost neural.Cost, validationData, testData []neural.TrainExample) neural.EpocheCallback {
 	return func(epoche int, dt time.Duration) {
-		avgCost, errors := neural.CalculateCorrectness(nn, cost, testData)
-		fmt.Printf("%v,%v,%v\n", epoche, avgCost, errors)
+		_, validationErrors := neural.CalculateCorrectness(nn, cost, validationData)
+		_, testErrors := neural.CalculateCorrectness(nn, cost, testData)
+		if epoche == 1 {
+			fmt.Println("epoche,validation error,test error")
+		}
+		fmt.Printf("%v,%v,%v\n", epoche, validationErrors, testErrors)
 	}
 }
 
 func main() {
-	trainData, testData := loadTestData()
+	trainData, validationData, testData := loadTestData()
 
 	activator := neural.NewSigmoidActivator()
 	outActivator := neural.NewSoftmaxFunction()
@@ -89,12 +95,12 @@ func main() {
 
 	cost := neural.NewLogLikelihoodCost()
 	options := neural.TrainOptions{
-		Epochs:         40,
+		Epochs:         100,
 		MiniBatchSize:  10,
 		LearningRate:   0.4,
 		Regularization: 5,
 		TrainerFactory: neural.NewBackpropagationTrainer,
-		EpocheCallback: epocheCallback(nn, cost, trainData, testData),
+		EpocheCallback: epocheCallback(nn, cost, validationData, testData),
 		Cost:           cost,
 	}
 
