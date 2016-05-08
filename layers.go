@@ -3,6 +3,7 @@ package neural
 import (
 	"encoding/gob"
 	"io"
+	"math"
 
 	"github.com/mrfuxi/neural/mat"
 )
@@ -35,8 +36,13 @@ type fullyConnectedLayer struct {
 // func NewFullyConnectedLayer(inputs, neurons int, activator Activator) Layer {
 func NewFullyConnectedLayer(activator Activator) LayerFactory {
 	return func(inputs, neurons int) Layer {
+
+		weightsNorm := 1 / math.Sqrt(float64(inputs))
+		weights := mat.RandomMatrix(neurons, inputs)
+		mat.MulMatrixByScalar(weights, weightsNorm)
+
 		return &fullyConnectedLayer{
-			weights:   mat.RandomMatrix(neurons, inputs),
+			weights:   weights,
 			biases:    mat.RandomVector(neurons),
 			inputs:    inputs,
 			neurons:   neurons,
