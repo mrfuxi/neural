@@ -169,7 +169,7 @@ func TestLearnXOR(t *testing.T) {
 	nn := neural.NewNeuralNetwork([]int{2, 2, 1}, neural.NewFullyConnectedLayer(activator), neural.NewFullyConnectedLayer(activator))
 
 	options := neural.TrainOptions{
-		Epochs:         860,
+		Epochs:         1020,
 		MiniBatchSize:  4,
 		LearningRate:   3,
 		TrainerFactory: neural.NewBackpropagationTrainer,
@@ -197,7 +197,7 @@ func TestLearnXORCrossEntropy(t *testing.T) {
 	nn := neural.NewNeuralNetwork([]int{2, 2, 1}, neural.NewFullyConnectedLayer(activator), neural.NewFullyConnectedLayer(activator))
 
 	options := neural.TrainOptions{
-		Epochs:         210,
+		Epochs:         260,
 		MiniBatchSize:  4,
 		LearningRate:   3,
 		TrainerFactory: neural.NewBackpropagationTrainer,
@@ -230,7 +230,7 @@ func TestLearnXORSoftMaxLogLikelyhood(t *testing.T) {
 	)
 
 	options := neural.TrainOptions{
-		Epochs:         160,
+		Epochs:         175,
 		MiniBatchSize:  4,
 		LearningRate:   3,
 		TrainerFactory: neural.NewBackpropagationTrainer,
