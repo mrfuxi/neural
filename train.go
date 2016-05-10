@@ -110,7 +110,7 @@ func Train(network Evaluator, trainExamples []TrainExample, options TrainOptions
 				}
 			}
 
-			rate := options.LearningRate / float64(batchSize)
+			rate := -options.LearningRate / float64(batchSize)
 			for l, layer := range layers {
 				mat.MulVectorByScalar(sumWeights.Biases[l], rate)
 				mat.MulMatrixByScalar(sumWeights.Weights[l], rate)

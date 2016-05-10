@@ -89,8 +89,8 @@ func (l *fullyConnectedLayer) UpdateWeights(weights [][]float64, biases []float6
 	if regularization != 1 {
 		mat.MulMatrixByScalar(l.weights, regularization)
 	}
-	mat.SubMatrix(l.weights, weights)
-	mat.SubVector(l.biases, biases)
+	mat.SumMatrix(l.weights, weights)
+	mat.SumVector(l.biases, biases)
 }
 
 func (l *fullyConnectedLayer) Activator() Activator {
