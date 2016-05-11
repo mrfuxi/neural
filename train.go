@@ -55,6 +55,7 @@ type TrainOptions struct {
 	MiniBatchSize  int
 	LearningRate   float64
 	Regularization float64 // L2 labda value
+	Momentum       float64
 	TrainerFactory TrainerFactory
 	EpocheCallback EpocheCallback
 	Cost           CostDerivative
@@ -79,6 +80,7 @@ func Train(network Evaluator, trainExamples []TrainExample, options TrainOptions
 	}
 
 	sumWeights := NewWeightUpdates(network)
+	momentumWeights := NewWeightUpdates(network)
 
 	weightsDecay := 1 - (options.LearningRate*options.Regularization)/float64(len(trainExamples))
 
@@ -112,9 +114,21 @@ func Train(network Evaluator, trainExamples []TrainExample, options TrainOptions
 
 			rate := -options.LearningRate / float64(batchSize)
 			for l, layer := range layers {
+				// dx = -(LR/batchSize) * W
 				mat.MulVectorByScalar(sumWeights.Biases[l], rate)
 				mat.MulMatrixByScalar(sumWeights.Weights[l], rate)
-				layer.UpdateWeights(sumWeights.Weights[l], sumWeights.Biases[l], weightsDecay)
+
+				// v = momentum * v
+				mat.MulVectorByScalar(momentumWeights.Biases[l], options.Momentum)
+				mat.MulMatrixByScalar(momentumWeights.Weights[l], options.Momentum)
+
+				// v = v + dx
+				mat.SumVector(momentumWeights.Biases[l], sumWeights.Biases[l])
+				mat.SumMatrix(momentumWeights.Weights[l], sumWeights.Weights[l])
+
+				// W = W + v
+				// L2 used for weighs only
+				layer.UpdateWeights(momentumWeights.Weights[l], momentumWeights.Biases[l], weightsDecay)
 			}
 		}
 
