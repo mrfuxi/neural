@@ -230,9 +230,44 @@ func TestLearnXORSoftMaxLogLikelyhood(t *testing.T) {
 	)
 
 	options := neural.TrainOptions{
-		Epochs:         175,
+		Epochs:         173,
 		MiniBatchSize:  4,
 		LearningRate:   3,
+		Momentum:       0,
+		TrainerFactory: neural.NewBackpropagationTrainer,
+		Cost:           neural.NewLogLikelihoodCost(),
+	}
+	neural.Train(nn, testMatrix, options)
+
+	for _, example := range testMatrix {
+		output := nn.Evaluate(example.Input)
+		assert.InDeltaSlice(t, example.Output, output, 0.2)
+	}
+}
+
+func TestLearnXORSoftMaxLogLikelyhoodMomentum(t *testing.T) {
+	rand.Seed(2)
+
+	testMatrix := []neural.TrainExample{
+		{[]float64{0, 0}, []float64{0, 1}},
+		{[]float64{1, 1}, []float64{0, 1}},
+		{[]float64{0, 1}, []float64{1, 0}},
+		{[]float64{1, 0}, []float64{1, 0}},
+	}
+
+	sigmoidActivator := neural.NewSigmoidActivator()
+	softMaxActivator := neural.NewSigmoidActivator()
+	nn := neural.NewNeuralNetwork(
+		[]int{2, 2, 2},
+		neural.NewFullyConnectedLayer(sigmoidActivator),
+		neural.NewFullyConnectedLayer(softMaxActivator),
+	)
+
+	options := neural.TrainOptions{
+		Epochs:         122,
+		MiniBatchSize:  4,
+		LearningRate:   3,
+		Momentum:       0.9,
 		TrainerFactory: neural.NewBackpropagationTrainer,
 		Cost:           neural.NewLogLikelihoodCost(),
 	}
