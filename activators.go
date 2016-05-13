@@ -111,3 +111,27 @@ func (s *softmaxActicator) Activation(dst, potentials []float64) {
 func (s *softmaxActicator) Derivative(dst, potentials []float64) {
 	panic("Derivative of Softmax should not be used in ANN")
 }
+
+// NewTanhFunction creates Activator that returns values between -1 and 1.
+// Very similar to sigmoid function in nature.
+//
+// Actication: tanh(potential)
+//
+// Derivative: 1/f(potential/2)/2
+func NewTanhFunction() Activator {
+	return &tanhActicator{}
+}
+
+type tanhActicator struct{}
+
+func (s *tanhActicator) Activation(dst, potentials []float64) {
+	for i, potential := range potentials {
+		dst[i] = math.Tanh(potential)
+	}
+}
+
+func (s *tanhActicator) Derivative(dst, potentials []float64) {
+	for i, potential := range potentials {
+		dst[i] = (1 + math.Tanh(potential/2)) / 2
+	}
+}
