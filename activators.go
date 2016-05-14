@@ -57,12 +57,12 @@ func (s *sigmoidActivator) Derivative(dst, potentials []float64) {
 	}
 }
 
-// NewStepFunction creates Activator that returns 0 or 1 only.
+// NewStepActivator creates Activator that returns 0 or 1 only.
 //
 // Actication: 1 if potential >= 0 else 0
 //
 // Derivative: 1 (is that correct?)
-func NewStepFunction() Activator {
+func NewStepActivator() Activator {
 	return &stepActicator{}
 }
 
@@ -84,7 +84,7 @@ func (s *stepActicator) Derivative(dst, potentials []float64) {
 	}
 }
 
-// NewSoftmaxFunction creates Activator that scales responses in layer from 0 to 1.
+// NewSoftmaxActivator creates Activator that scales responses in layer from 0 to 1.
 //
 // Sum of responses in layer are equal 1, so it can be interpret as probability.
 // This activator should be used in last layer with Log Likelihood.

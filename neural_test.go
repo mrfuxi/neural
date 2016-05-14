@@ -42,7 +42,7 @@ func TestBinaryAND(t *testing.T) {
 		{[]float64{1, 1}, []float64{1}},
 	}
 
-	activator := neural.NewStepFunction()
+	activator := neural.NewStepActivator()
 	nn := neural.NewNeuralNetwork([]int{2, 1}, neural.NewFullyConnectedLayer(activator))
 	nn.Layers()[0].SetWeights(
 		[][]float64{{1, 1}},
@@ -120,7 +120,7 @@ func TestUseXORStep(t *testing.T) {
 		{[]float64{1, 0}, []float64{1}},
 	}
 
-	activator := neural.NewStepFunction()
+	activator := neural.NewStepActivator()
 	nn := neural.NewNeuralNetwork([]int{2, 2, 1}, neural.NewFullyConnectedLayer(activator), neural.NewFullyConnectedLayer(activator))
 	nn.Layers()[0].SetWeights(weights0, biases0)
 	nn.Layers()[1].SetWeights(weights1, biases1)
