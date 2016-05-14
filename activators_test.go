@@ -68,7 +68,7 @@ func TestSoftmaxActivator(t *testing.T) {
 		{[]float64{1, 1, 10}, []float64{0.0001, 0.0001, 0.9998}},
 	}
 
-	activator := neural.NewSoftmaxFunction()
+	activator := neural.NewSoftmaxActivator()
 	for _, example := range testMatrix {
 		activation := make([]float64, len(example.in), len(example.in))
 		activator.Activation(activation, example.in)
@@ -85,5 +85,26 @@ func TestSoftmaxActivator(t *testing.T) {
 		assert.Panics(t, func() {
 			activator.Derivative(activation, example.in)
 		})
+	}
+}
+
+func TestTanhActivator(t *testing.T) {
+	testMatrix := []struct {
+		in, activation, derivative []float64
+	}{
+		{[]float64{-2}, []float64{-0.96402758}, []float64{0.119202922}},
+		{[]float64{0}, []float64{0}, []float64{0.5}},
+		{[]float64{2}, []float64{0.96402758}, []float64{0.880797078}},
+		{[]float64{-2, 0, 2}, []float64{-0.96402758, 0, 0.96402758}, []float64{0.119202922, 0.5, 0.880797078}},
+	}
+
+	activator := neural.NewTanhActivator()
+	for _, example := range testMatrix {
+		activation := make([]float64, len(example.in), len(example.in))
+		derivative := make([]float64, len(example.in), len(example.in))
+		activator.Activation(activation, example.in)
+		activator.Derivative(derivative, example.in)
+		assert.InDeltaSlice(t, example.activation, activation, 0.00001)
+		assert.InDeltaSlice(t, example.derivative, derivative, 0.00001)
 	}
 }

@@ -89,7 +89,7 @@ func (s *stepActicator) Derivative(dst, potentials []float64) {
 // Sum of responses in layer are equal 1, so it can be interpret as probability.
 // This activator should be used in last layer with Log Likelihood.
 // Derivative is not implemented as it should not be needed. If used it will panic.
-func NewSoftmaxFunction() Activator {
+func NewSoftmaxActivator() Activator {
 	return &softmaxActicator{}
 }
 
@@ -112,13 +112,13 @@ func (s *softmaxActicator) Derivative(dst, potentials []float64) {
 	panic("Derivative of Softmax should not be used in ANN")
 }
 
-// NewTanhFunction creates Activator that returns values between -1 and 1.
+// NewTanhActivator creates Activator that returns values between -1 and 1.
 // Very similar to sigmoid function in nature.
 //
 // Actication: tanh(potential)
 //
 // Derivative: 1/f(potential/2)/2
-func NewTanhFunction() Activator {
+func NewTanhActivator() Activator {
 	return &tanhActicator{}
 }
 

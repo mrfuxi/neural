@@ -65,7 +65,7 @@ func main() {
 	trainData, validationData, testData := loadTestData()
 
 	activator := neural.NewSigmoidActivator()
-	outActivator := neural.NewSoftmaxFunction()
+	outActivator := neural.NewSoftmaxActivator()
 	nn := neural.NewNeuralNetwork(
 		[]int{inputSize, 100, 10},
 		neural.NewFullyConnectedLayer(activator),
