@@ -10,24 +10,24 @@ type Activator interface {
 
 // NewLinearActivator creates Activator that applies linear function to given potential
 //
-// Actication: a*potential + 0
+// Activation: a*potential + 0
 //
 // Derivative: a
 func NewLinearActivator(a float64) Activator {
-	return &linearActication{a}
+	return &linearActivation{a}
 }
 
-type linearActication struct {
+type linearActivation struct {
 	a float64
 }
 
-func (l *linearActication) Activation(dst, potentials []float64) {
+func (l *linearActivation) Activation(dst, potentials []float64) {
 	for i, potential := range potentials {
 		dst[i] = l.a * potential
 	}
 }
 
-func (l *linearActication) Derivative(dst, potentials []float64) {
+func (l *linearActivation) Derivative(dst, potentials []float64) {
 	for i := range potentials {
 		dst[i] = l.a
 	}
@@ -35,7 +35,7 @@ func (l *linearActication) Derivative(dst, potentials []float64) {
 
 // NewSigmoidActivator creates Activator that applies linear function to given potential
 //
-// Actication: 1/(1+exp(-potential))
+// Activation: 1/(1+exp(-potential))
 //
 // Derivative: f(potential) * (1- f(potential))
 func NewSigmoidActivator() Activator {
@@ -59,7 +59,7 @@ func (s *sigmoidActivator) Derivative(dst, potentials []float64) {
 
 // NewStepActivator creates Activator that returns 0 or 1 only.
 //
-// Actication: 1 if potential >= 0 else 0
+// Activation: 1 if potential >= 0 else 0
 //
 // Derivative: 1 (is that correct?)
 func NewStepActivator() Activator {
@@ -115,7 +115,7 @@ func (s *softmaxActicator) Derivative(dst, potentials []float64) {
 // NewTanhActivator creates Activator that returns values between -1 and 1.
 // Very similar to sigmoid function in nature.
 //
-// Actication: tanh(potential)
+// Activation: tanh(potential)
 //
 // Derivative: 1/f(potential/2)/2
 func NewTanhActivator() Activator {
@@ -133,5 +133,37 @@ func (s *tanhActicator) Activation(dst, potentials []float64) {
 func (s *tanhActicator) Derivative(dst, potentials []float64) {
 	for i, potential := range potentials {
 		dst[i] = (1 + math.Tanh(potential/2)) / 2
+	}
+}
+
+// NewRectActivator creates Activator that returns 0 for non positive potential, otherwise it returns potential
+// It's a rectified linear function
+//
+// Activation: 0 for potential < 0, potential otherwise
+//
+// Derivative: 0 for potential < 0, 1 otherwise
+func NewRectActivator() Activator {
+	return &tanhActicator{}
+}
+
+type rectActicator struct{}
+
+func (s *rectActicator) Activation(dst, potentials []float64) {
+	for i, potential := range potentials {
+		if potential > 0 {
+			dst[i] = potential
+		} else {
+			dst[i] = 0
+		}
+	}
+}
+
+func (s *rectActicator) Derivative(dst, potentials []float64) {
+	for i, potential := range potentials {
+		if potential > 0 {
+			dst[i] = 1
+		} else {
+			dst[i] = 0
+		}
 	}
 }
