@@ -108,3 +108,25 @@ func TestTanhActivator(t *testing.T) {
 		assert.InDeltaSlice(t, example.derivative, derivative, 0.00001)
 	}
 }
+
+func TestRectActivator(t *testing.T) {
+	testMatrix := []struct {
+		in, activation, derivative []float64
+	}{
+		{[]float64{-2}, []float64{0}, []float64{0}},
+		{[]float64{0}, []float64{0}, []float64{0}},
+		{[]float64{2}, []float64{2}, []float64{1}},
+		{[]float64{-2, 0, 2}, []float64{0, 0, 2}, []float64{0, 0, 1}},
+		{[]float64{-0.001, 0, 0.0001}, []float64{0, 0, 0.0001}, []float64{0, 0, 1}},
+	}
+
+	activator := neural.NewRectActivator()
+	for _, example := range testMatrix {
+		activation := make([]float64, len(example.in), len(example.in))
+		derivative := make([]float64, len(example.in), len(example.in))
+		activator.Activation(activation, example.in)
+		activator.Derivative(derivative, example.in)
+		assert.InDeltaSlice(t, example.activation, activation, 0.00001)
+		assert.InDeltaSlice(t, example.derivative, derivative, 0.00001)
+	}
+}

@@ -143,7 +143,7 @@ func (s *tanhActicator) Derivative(dst, potentials []float64) {
 //
 // Derivative: 0 for potential < 0, 1 otherwise
 func NewRectActivator() Activator {
-	return &tanhActicator{}
+	return &rectActicator{}
 }
 
 type rectActicator struct{}
