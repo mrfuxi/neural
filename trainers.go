@@ -49,7 +49,9 @@ func NewBackpropagationTrainer(network Evaluator, cost CostDerivative) Trainer {
 		t.acticationPerLayer[l+1] = make([]float64, biasesCol, biasesCol)
 		t.potentialsPerLayer[l] = make([]float64, biasesCol, biasesCol)
 		t.sp[l] = make([]float64, biasesCol, biasesCol)
-		t.backward[l] = make([]float64, weightsCol, weightsCol)
+		if l > 0 {
+			t.backward[l-1] = make([]float64, weightsCol, weightsCol)
+		}
 	}
 
 	return &t

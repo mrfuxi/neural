@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mrfuxi/neural"
+	"github.com/mrfuxi/neural/mat"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,6 +33,46 @@ func TestFeedForwardCorrentOutputSize(t *testing.T) {
 
 	assert.Len(t, output, 3)
 	assert.Equal(t, expectedOutput, output)
+}
+
+func TestDifferentShapes(t *testing.T) {
+	activator := neural.NewSigmoidActivator()
+
+	options := neural.TrainOptions{
+		Epochs:         5,
+		MiniBatchSize:  2,
+		LearningRate:   3,
+		TrainerFactory: neural.NewBackpropagationTrainer,
+		Cost:           neural.NewQuadraticCost(),
+	}
+
+	for in := 1; in < 101; in += 20 {
+		for hid := 1; hid < 101; hid += 20 {
+			for out := 1; out < 101; out += 20 {
+				nn := neural.NewNeuralNetwork(
+					[]int{in, hid, out},
+					neural.NewFullyConnectedLayer(activator),
+					neural.NewFullyConnectedLayer(activator),
+				)
+
+				testMatrix := []neural.TrainExample{
+					{Input: mat.RandomVector(in), Output: mat.RandomVector(out)},
+					{Input: mat.RandomVector(in), Output: mat.RandomVector(out)},
+					{Input: mat.RandomVector(in), Output: mat.RandomVector(out)},
+					{Input: mat.RandomVector(in), Output: mat.RandomVector(out)},
+					{Input: mat.RandomVector(in), Output: mat.RandomVector(out)},
+				}
+
+				// Training should not cause any errors
+				neural.Train(nn, testMatrix, options)
+
+				// Evaluation should not cause any errors
+				output := nn.Evaluate(mat.RandomVector(in))
+
+				assert.Len(t, output, out)
+			}
+		}
+	}
 }
 
 func TestBinaryAND(t *testing.T) {
